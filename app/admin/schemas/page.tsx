@@ -231,50 +231,6 @@ export default function SchemasPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-2">
-                <Database className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Schemas</p>
-                  <p className="text-2xl font-bold">{schemas.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-2">
-                <Table className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Components</p>
-                  <p className="text-2xl font-bold">
-                    {
-                      schemas.filter((s) => s.schema_type === "component")
-                        .length
-                    }
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-2">
-                <Eye className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Pages</p>
-                  <p className="text-2xl font-bold">
-                    {schemas.filter((s) => s.schema_type === "page").length}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   );

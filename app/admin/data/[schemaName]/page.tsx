@@ -180,54 +180,6 @@ export default function SchemaDataPage() {
           </div>
         </div>
 
-        {/* Schema Info */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <Database className="w-4 h-4 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Schema Type</p>
-                  <p className="font-semibold">{schema.schema_type}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 bg-primary rounded" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Fields</p>
-                  <p className="font-semibold">{getFieldCount()}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 bg-secondary rounded" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Relationships</p>
-                  <p className="font-semibold">{getRelationshipCount()}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 bg-accent rounded" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Version</p>
-                  <p className="font-semibold">{schema.version}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Data Table */}
         <DataTable
           schemaName={schemaName}

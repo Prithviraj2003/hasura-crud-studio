@@ -124,41 +124,6 @@ export const OneToManyManager: React.FC<OneToManyManagerProps> = ({
       }
     }
 
-    // Set the reference_id (foreign key) to link back to parent
-    // Find the foreign key field that references the parent table, but skip fields already set by auto-population
-    const foreignKeyField = schema?.schema_definition?.fields?.find(
-      (field: any) =>
-        field.foreign_key &&
-        field.name.includes("_id") &&
-        emptyItem[field.name] === undefined && // Don't overwrite auto-populated fields
-        field.foreign_key.table === "health_product_variants" // Make sure it's the right parent table
-    );
-
-    if (foreignKeyField) {
-      // Set to parentId if available, otherwise mark as pending
-      emptyItem[foreignKeyField.name] = parentId || null;
-      emptyItem._parentIdField = foreignKeyField.name; // Track which field needs the parent ID
-    } else {
-      // Fallback: try common naming patterns, but don't overwrite existing values
-      const possibleKeys = [
-        `${relationship.name.split("_")[0]}_id`,
-        "parent_id",
-        "reference_id",
-      ];
-
-      for (const key of possibleKeys) {
-        const field = schema?.schema_definition?.fields?.find(
-          (f: any) => f.name === key
-        );
-        if (field && emptyItem[key] === undefined) {
-          // Don't overwrite existing values
-          emptyItem[key] = parentId || null;
-          emptyItem._parentIdField = key; // Track which field needs the parent ID
-          break;
-        }
-      }
-    }
-
     return emptyItem;
   };
 

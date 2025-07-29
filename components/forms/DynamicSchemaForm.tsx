@@ -12,6 +12,7 @@ import { SchemaRenderer } from "./SchemaRenderer";
 import { FormActions } from "./FormActions";
 import { FormIdManager } from "@/lib/services/FormIdManager";
 import { ChangeDetector } from "@/lib/services/ChangeDetector";
+import { toast } from "sonner";
 
 interface DynamicSchemaFormProps {
   schemaName: string;
@@ -322,6 +323,12 @@ export const DynamicSchemaForm: React.FC<DynamicSchemaFormProps> = ({
 
         console.log("All changes saved successfully");
 
+        // Show success toast
+        toast.success("Changes saved successfully!", {
+          description: "Your changes have been saved.",
+          duration: 3000,
+        });
+
         // Reset form state after successful save
         await resetFormState();
 
@@ -360,6 +367,12 @@ export const DynamicSchemaForm: React.FC<DynamicSchemaFormProps> = ({
         const result = await response.json();
         console.log("Save successful:", result);
 
+        // Show success toast for create mode
+        toast.success("Record created successfully!", {
+          description: "Your new record has been created.",
+          duration: 3000,
+        });
+
         // Reset form state after successful save
         await resetFormState();
 
@@ -383,6 +396,12 @@ export const DynamicSchemaForm: React.FC<DynamicSchemaFormProps> = ({
     } catch (err: any) {
       console.error("Save error:", err);
       setError(err.message);
+
+      // Show error toast
+      toast.error("Failed to save changes", {
+        description: err.message || "An unexpected error occurred.",
+        duration: 5000,
+      });
     } finally {
       setIsProcessing(false);
     }

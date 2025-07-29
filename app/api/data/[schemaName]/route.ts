@@ -3,6 +3,7 @@ import { getHasuraAdminClient } from "@/lib/hasura/client";
 import { SchemaManager } from "@/lib/schema/SchemaManager";
 import { CacheManager } from "@/lib/schema/CacheManager";
 import { gql } from "@apollo/client";
+import { IdGeneratorService } from "@/lib/services/IdGeneratorService";
 
 const cacheManager = new CacheManager(
   process.env.REDIS_URL,
@@ -204,6 +205,11 @@ export async function POST(
         }
       }
     `;
+
+    if (!data.id) {
+      const id = await IdGeneratorService.generateId();
+      data.id = id;
+    }
 
     try {
       const response = await hasuraClient.mutate({

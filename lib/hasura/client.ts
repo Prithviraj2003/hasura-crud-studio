@@ -1,4 +1,5 @@
 import { GraphQLClient } from "graphql-request";
+import { requestCache } from "@/lib/cache/RequestCache";
 
 // Admin client for schema management (server-side only)
 export class HasuraAdminClient {
@@ -62,22 +63,28 @@ export class HasuraAdminClient {
 // Server-side data operations client
 export class ServerDataClient {
   async query(operationName: string, variables: any = {}): Promise<any> {
-    const response = await fetch(`/api/graphql/query`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        operationName,
-        variables,
-      }),
+    // Generate cache key
+    const cacheKey = requestCache.getOperationKey(operationName, variables);
+
+    // Use cache to prevent duplicate requests
+    return await requestCache.get(cacheKey, async () => {
+      const response = await fetch(`/api/graphql/query`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          operationName,
+          variables,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server query failed: ${response.statusText}`);
+      }
+
+      return await response.json();
     });
-
-    if (!response.ok) {
-      throw new Error(`Server query failed: ${response.statusText}`);
-    }
-
-    return await response.json();
   }
 
   async mutate(operationName: string, variables: any = {}): Promise<any> {

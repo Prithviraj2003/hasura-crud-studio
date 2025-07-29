@@ -17,7 +17,7 @@ import {
 } from "@strapi/design-system";
 import { Cross } from "@strapi/icons";
 import { RelationshipConfig } from "@/lib/schema/FormGenerator";
-import { getServerDataClient } from "@/lib/hasura/client";
+import { requestCache } from "@/lib/cache/RequestCache";
 
 interface ManyToManyManagerProps {
   relationship: RelationshipConfig;
@@ -51,18 +51,25 @@ export const ManyToManyManager: React.FC<ManyToManyManagerProps> = ({
   const loadAvailableItems = async () => {
     try {
       setLoading(true);
-      const client = getServerDataClient();
       const displayField = relationship.displayField || "name";
 
-      // Use server API to fetch available items
-      const response = await client.query(
-        `get${relationship.targetComponent}Options`,
-        {
-          orderBy: { [displayField]: "asc" },
-        }
-      );
+      // Generate cache key
+      const cacheKey = requestCache.getOptionsKey(relationship.targetComponent, 100, displayField, 'asc');
 
-      const items = response.data || [];
+      // Use cache to prevent duplicate requests and consistent GET method
+      const result = await requestCache.get(cacheKey, async () => {
+        const url = `/api/graphql/options/${relationship.targetComponent}?limit=100&orderBy=${displayField}&direction=asc`;
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch options: ${response.statusText}`);
+        }
+
+        return await response.json();
+      });
+
+      const items = result.data || [];
       setAvailableItems(items);
       setFilteredItems(items);
     } catch (err) {

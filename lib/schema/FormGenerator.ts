@@ -515,7 +515,7 @@ export class FormGenerator {
         if (rel.type === "many-to-one" || rel.type === "one-to-one") {
           query += `      ${rel.graphql_field} {\n`;
           query += `        id\n`;
-          query += `        ${rel.ui_config?.display_field || "name"}\n`;
+          query += `        ${rel.ui_config?.display_field}\n`;
           query += `      }\n`;
         } else if (rel.type === "one-to-many") {
           query += `      ${rel.graphql_field} {\n`;
@@ -525,7 +525,7 @@ export class FormGenerator {
         } else if (rel.type === "many-to-many") {
           query += `      ${rel.graphql_field} {\n`;
           query += `        id\n`;
-          query += `        ${rel.ui_config?.display_field || "name"}\n`;
+          query += `        ${rel.ui_config?.display_field}\n`;
           query += `      }\n`;
         }
       });
@@ -579,7 +579,7 @@ export class FormGenerator {
         if (rel.type === "many-to-one" || rel.type === "one-to-one") {
           query += `      ${rel.graphql_field} {\n`;
           query += `        id\n`;
-          query += `        ${rel.ui_config?.display_field || "name"}\n`;
+          query += `        ${rel.ui_config?.display_field}\n`;
 
           // Add other important fields from related schema
           if (relatedSchema?.schema_definition?.fields) {
@@ -616,9 +616,7 @@ export class FormGenerator {
               ) {
                 query += `        ${nestedRel.graphql_field} {\n`;
                 query += `          id\n`;
-                query += `          ${
-                  nestedRel.ui_config?.display_field || "name"
-                }\n`;
+                query += `          ${nestedRel.ui_config?.display_field}\n`;
                 query += `        }\n`;
               } else if (nestedRel.type === "one-to-many") {
                 query += `        ${nestedRel.graphql_field} {\n`;
@@ -644,7 +642,7 @@ export class FormGenerator {
         } else if (rel.type === "many-to-many") {
           query += `      ${rel.graphql_field} {\n`;
           query += `        id\n`;
-          query += `        ${rel.ui_config?.display_field || "name"}\n`;
+          query += `        ${rel.ui_config?.display_field}\n`;
 
           // Add other important fields from related schema
           if (relatedSchema?.schema_definition?.fields) {

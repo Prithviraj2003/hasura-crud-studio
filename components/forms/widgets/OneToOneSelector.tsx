@@ -9,8 +9,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { getServerDataClient } from "@/lib/hasura/client";
 import { ForeignKey } from "@/lib/schema/types";
+import { requestCache } from "@/lib/cache/RequestCache";
 
 interface OneToOneSelectorProps {
   fieldName: string;
@@ -53,19 +53,36 @@ export const OneToOneSelector: React.FC<OneToOneSelectorProps> = ({
     try {
       setLoading(true);
       setError(null);
-      const client = getServerDataClient();
 
-      // Use server API to fetch relationship options
-      const response = await client.query(`get${foreignKey.table}Options`, {
-        limit: 100,
-        orderBy: { [displayField]: "asc" },
+      // Generate cache key
+      const cacheKey = requestCache.getOptionsKey(
+        foreignKey.table,
+        100,
+        displayField,
+        "asc"
+      );
+
+      // Use cache to prevent duplicate requests and consistent GET method
+      const result = await requestCache.get(cacheKey, async () => {
+        console.log(
+          "foreignKey.table in one to one selector",
+          foreignKey.table
+        );
+        const url = `/api/graphql/options/${foreignKey.table}?limit=100&orderBy=${displayField}&direction=asc`;
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch options: ${response.statusText}`);
+        }
+
+        return await response.json();
       });
 
-      const data = response.data[foreignKey.table] || [];
+      const data = result.data || [];
       setOptions(data);
     } catch (err: any) {
       console.error("Failed to load relationship options:", err);
-
       setError(`Failed to load options from ${foreignKey.table}`);
     } finally {
       setLoading(false);

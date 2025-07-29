@@ -26,6 +26,7 @@ export const FormActions: React.FC<FormActionsProps> = ({
       <div>
         {onCancel && (
           <Button
+            type="button"
             variant="ghost"
             onClick={onCancel}
             disabled={isSubmitting}

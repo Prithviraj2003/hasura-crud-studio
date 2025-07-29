@@ -255,6 +255,19 @@ export const DataTable: React.FC<DataTableProps> = ({
     return defaultColumns;
   };
 
+  // Helper function to check if a string contains HTML
+  const isHTMLContent = (str: string) => {
+    const htmlRegex = /<\/?[a-z][\s\S]*>/i;
+    return htmlRegex.test(str);
+  };
+
+  // Helper function to strip HTML tags for preview
+  const stripHTMLTags = (html: string) => {
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    return div.textContent || div.innerText || "";
+  };
+
   const formatCellValue = (value: any, fieldName: string) => {
     if (value === null || value === undefined) {
       return <span className="text-muted-foreground">-</span>;
@@ -281,6 +294,30 @@ export const DataTable: React.FC<DataTableProps> = ({
         <Badge variant={value ? "default" : "secondary"}>
           {value ? "Yes" : "No"}
         </Badge>
+      );
+    }
+
+    // Handle HTML content
+    if (typeof value === "string" && isHTMLContent(value)) {
+      const textContent = stripHTMLTags(value);
+      // Show truncated text content with original HTML in title for tooltip
+      if (textContent.length > 100) {
+        return (
+          <span title={value}>
+            <div
+              className="inline"
+              dangerouslySetInnerHTML={{
+                __html: textContent.substring(0, 100) + "...",
+              }}
+            />
+          </span>
+        );
+      }
+      // Render short HTML content directly
+      return (
+        <span title={value}>
+          <div className="inline" dangerouslySetInnerHTML={{ __html: value }} />
+        </span>
       );
     }
 

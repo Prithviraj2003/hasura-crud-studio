@@ -4,55 +4,34 @@ import { SchemaManager } from "@/lib/schema/SchemaManager";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ componentName: string }> }
+  { params }: { params: Promise<{ componentName: string; optionId: string }> }
 ) {
   try {
-    const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get("limit") || "100");
-    const orderBy = searchParams.get("orderBy") || "name";
-    const direction = searchParams.get("direction") || "asc";
-    const search = searchParams.get("search");
-
     const resolvedParams = await params;
     const componentName = resolvedParams.componentName;
+    const optionId = resolvedParams.optionId;
 
     const adminClient = getHasuraAdminClient();
 
-    let data = [];
+    let data = null;
     let queryExecuted = false;
 
     try {
-      const titleField = await getOptionTitleField(componentName, adminClient);
-
-      // Build where condition for search
-      let whereCondition = "";
-      const variables: any = {
-        limit,
-        orderBy: { [orderBy]: direction },
-      };
-
-      if (search) {
-        // Add search condition
-        whereCondition = `where: $where, `;
-        variables.where = {
-          [titleField]: { _ilike: `%${search}%` },
-        };
-      }
-
       const query = `
-          query GetComponentOptions($limit: Int, $orderBy: ${componentName}_order_by!, ${
-        search ? "$where: " + componentName + "_bool_exp!" : ""
-      }) {
-            ${componentName}(${whereCondition}limit: $limit, order_by: [$orderBy]) {
+          query GetSingleOption($id: String!) {
+            ${componentName}_by_pk(id: $id) {
               id
-              ${titleField}
+              ${await getOptionTitleField(componentName, adminClient)}
             }
           }
         `;
-      console.log("query", query);
+
+      const variables = {
+        id: optionId,
+      };
 
       const result = await adminClient.request(query, variables);
-      data = result[componentName] || [];
+      data = result[`${componentName}_by_pk`];
 
       queryExecuted = true;
     } catch (error) {
@@ -69,13 +48,13 @@ export async function GET(
     return NextResponse.json({
       data,
       componentName,
-      count: data.length,
+      optionId,
     });
   } catch (error: any) {
-    console.error("Options API Error:", error);
+    console.error("Single Option API Error:", error);
     return NextResponse.json(
       {
-        error: "Failed to fetch options",
+        error: "Failed to fetch option",
         message: error.message,
         stack: error.stack,
       },
@@ -94,5 +73,6 @@ async function getOptionTitleField(
   const field = schema?.schema_definition.fields.find(
     (field) => field.is_option_title
   );
+
   return field?.name || "name";
 }

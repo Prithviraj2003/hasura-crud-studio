@@ -55,7 +55,7 @@ export const RelationshipRenderer: React.FC<RelationshipRendererProps> = ({
           control={control}
           relationshipType={relationship.type}
           targetComponent={relationship.targetComponent || ""}
-          displayField={relationship.displayField || "name"}
+          displayField={relationship.displayField}
           placeholder={`Select ${relationship.title}`}
           disabled={shouldDisableInEdit}
         />

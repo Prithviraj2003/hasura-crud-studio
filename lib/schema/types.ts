@@ -107,7 +107,7 @@ export interface FieldUIConfig {
   min?: number;
   max?: number;
   step?: number;
-  component_display_key?: string;
+  display_field?: string;
   auto_populate?: {
     source: "parent_context" | "current_user" | "timestamp";
     field: string;

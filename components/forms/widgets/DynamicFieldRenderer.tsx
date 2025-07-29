@@ -15,6 +15,7 @@ import {
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import { OneToOneSelector } from "@/components/forms/widgets/OneToOneSelector";
+import { Field } from "@/lib/schema/types";
 
 interface DynamicFieldRendererProps {
   schema: any;
@@ -53,7 +54,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
     });
   };
 
-  const renderField = (field: any) => {
+  const renderField = (field: Field) => {
     const fieldKey = `${fieldName}.${itemIndex}.${field.name}`;
     const fieldValue = item[field.name] || "";
 
@@ -193,7 +194,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
               placeholder={field.ui_config?.placeholder}
               helpText={field.ui_config?.help_text}
               onChange={(value) => handleFieldChange(field.name, value)}
-              displayField={field.ui_config?.component_display_key || "name"}
+              displayField={field.ui_config?.display_field}
             />
           );
         }
