@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getHasuraAdminClient } from "@/lib/hasura/client";
-import { CacheManager } from "@/lib/schema/CacheManager";
 import { OperationLoader } from "@/lib/graphql/OperationLoader";
 
 export async function POST(request: NextRequest) {
@@ -19,7 +18,6 @@ export async function POST(request: NextRequest) {
 
     // Load operation from schema cache or generate it
     const operation = await operationLoader.loadOperation(operationName);
-    console.log("Loaded operation:", operationName, operation ? "found" : "not found");
 
     if (!operation) {
       return NextResponse.json(
@@ -46,5 +44,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// Operation loading is now handled by OperationLoader class

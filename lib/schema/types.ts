@@ -25,6 +25,7 @@ export interface TableDefinition {
   name: string;
   primary_key: string;
   display_field?: string;
+  hasura_table_name?: string;
 }
 
 export interface PrimaryComponent {
@@ -55,6 +56,7 @@ export interface Field {
   step?: number;
   readonly?: boolean;
   hidden?: boolean;
+  is_option_title?: boolean;
 }
 
 export type FieldType =
@@ -110,6 +112,7 @@ export interface FieldUIConfig {
     source: "parent_context" | "current_user" | "timestamp";
     field: string;
   };
+  grid_cols?: number;
 }
 
 export interface Relationship {

@@ -3,7 +3,6 @@
 import React from "react";
 import { useFormContext } from "react-hook-form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,9 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Grid } from "lucide-react";
-import { IdGeneratorService } from "@/lib/services/IdGeneratorService";
-import { RichTextEditor } from "@/components/forms/widgets/RichTextEditor";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import { OneToOneSelector } from "@/components/forms/widgets/OneToOneSelector";
@@ -35,7 +31,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
   fieldName,
   onUpdate,
 }) => {
-  const { register, watch, setValue } = useFormContext();
+  const { setValue } = useFormContext();
 
   if (!schema?.schema_definition?.fields) {
     return (
@@ -347,12 +343,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
             field.name === "parent_id";
           const displayValue =
             fieldValue || (isReferenceField ? "Will be set automatically" : "");
-          console.log(
-            "fieldValue",
-            fieldValue,
-            "isReferenceField",
-            isReferenceField
-          );
+
           return (
             <div key={field.name} className="space-y-2">
               <Label htmlFor={fieldKey}>

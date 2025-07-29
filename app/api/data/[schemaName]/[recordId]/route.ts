@@ -5,7 +5,10 @@ import { CacheManager } from "@/lib/schema/CacheManager";
 import { CascadingDeleteService } from "@/lib/services/CascadingDeleteService";
 import { gql } from "@apollo/client";
 
-const cacheManager = new CacheManager(process.env.REDIS_URL);
+const cacheManager = new CacheManager(
+  process.env.REDIS_URL,
+  process.env.CACHE === "true"
+);
 
 // Helper function to build table name from schema name
 function getTableName(schemaName: string): string {
@@ -162,11 +165,6 @@ export async function PUT(
       }
     }
 
-    console.log(
-      `Filtered update data for ${schemaName}:`,
-      Object.keys(updateData)
-    );
-
     const mutation = gql`
       mutation Update${tableName}($id: String!, $_set: ${tableName}_set_input!) {
         update_${tableName}_by_pk(pk_columns: {id: $id}, _set: $_set) {
@@ -241,7 +239,6 @@ export async function DELETE(
 
     if (cascade) {
       // Use cascading delete service
-      console.log(`Starting cascading delete for ${schemaName}:${recordId}`);
 
       const cascadingDeleteService = new CascadingDeleteService(hasuraClient);
 

@@ -31,6 +31,7 @@ export interface FieldConfig {
   min?: number;
   max?: number;
   currency?: string;
+  grid_cols?: number;
   // File upload specific properties
   allowedTypes?: string[];
   maxFiles?: number;
@@ -180,7 +181,8 @@ export class FormGenerator {
         entityId: entityId,
         fields: this.generateFieldConfigs(
           defaultSchema.schema_definition.fields,
-          defaultSchema.relationships
+          defaultSchema.relationships,
+          entityId ? "edit" : "create"
         ),
         relationships: [],
         validation: this.generateValidationRules(
@@ -203,7 +205,11 @@ export class FormGenerator {
       schema: schema,
       mode: entityId ? "edit" : "create",
       entityId: entityId,
-      fields: this.generateFieldConfigs(schema.schema_definition.fields, schema.relationships),
+      fields: this.generateFieldConfigs(
+        schema.schema_definition.fields,
+        schema.relationships,
+        entityId ? "edit" : "create"
+      ),
       relationships: this.generateRelationshipConfigs(
         schema.relationships || [],
         schemaWithRelated?.relatedSchemas || {}
@@ -224,11 +230,26 @@ export class FormGenerator {
     return formConfig;
   }
 
-  generateFieldConfigs(fields: Field[], relationships?: Relationship[]): FieldConfig[] {
+  generateFieldConfigs(
+    fields: Field[],
+    relationships?: Relationship[],
+    mode?: "create" | "edit"
+  ): FieldConfig[] {
     return fields?.map((field) => {
       // Find the relationship that uses this field as source_field
-      const relatedRelationship = relationships?.find(rel => rel.source_field === field.name);
-      
+      const relatedRelationship = relationships?.find(
+        (rel) => rel.source_field === field.name
+      );
+
+      // Determine if field should be readonly in edit mode
+      const isIdField =
+        field.primary_key ||
+        field.auto_generate ||
+        field.name.toLowerCase().includes("id");
+      const isForeignKeyField = relatedRelationship !== undefined;
+      const shouldBeReadonlyInEdit =
+        mode === "edit" && (isIdField || isForeignKeyField);
+
       return {
         name: field.name,
         type: field.type,
@@ -238,7 +259,7 @@ export class FormGenerator {
         helpText: field.ui_config?.help_text,
         required: field.required,
         hidden: field.ui_config?.hidden || field.auto_generate || false,
-        readonly: field.readonly || field.auto_update || false,
+        readonly: field.readonly || field.auto_update || shouldBeReadonlyInEdit,
         validation: field.validation,
         options:
           field.ui_config?.options ||
@@ -254,8 +275,13 @@ export class FormGenerator {
         max: field.ui_config?.max || field.validation?.max,
         currency: field.ui_config?.currency,
         // Set targetComponent for relationship fields
-        targetComponent: relatedRelationship ? relatedRelationship.target_component : undefined,
-        displayField: relatedRelationship ? relatedRelationship.ui_config?.display_field || "name" : undefined,
+        targetComponent: relatedRelationship
+          ? relatedRelationship.target_component
+          : undefined,
+        displayField: relatedRelationship
+          ? relatedRelationship.ui_config?.display_field || "name"
+          : undefined,
+        grid_cols: field.ui_config?.grid_cols,
       };
     });
   }
@@ -441,11 +467,11 @@ export class FormGenerator {
       } else if (field.type === "integer" || field.type === "decimal") {
         defaults[field.name] = field.validation?.min || 0;
       }
-      
+
       // Handle auto-population based on schema configuration
       if (field.ui_config?.auto_populate && contextData) {
         const autoPopulate = field.ui_config.auto_populate;
-        
+
         if (autoPopulate.source === "parent_context" && contextData.parentId) {
           defaults[field.name] = contextData.parentId;
         }
@@ -464,6 +490,7 @@ export class FormGenerator {
     if (!primaryKey) throw new Error("No primary key found");
 
     const tableName =
+      schema.schema_definition.table?.hasura_table_name ||
       schema.schema_definition.table?.name ||
       schema.schema_definition.primary_component?.table;
 
@@ -485,7 +512,6 @@ export class FormGenerator {
     // Add relationships
     if (schema.relationships) {
       schema.relationships.forEach((rel) => {
-        console.log("rel", rel);
         if (rel.type === "many-to-one" || rel.type === "one-to-one") {
           query += `      ${rel.graphql_field} {\n`;
           query += `        id\n`;
@@ -526,6 +552,7 @@ export class FormGenerator {
     if (!primaryKey) throw new Error("No primary key found");
 
     const tableName =
+      schema.schema_definition.table?.hasura_table_name ||
       schema.schema_definition.table?.name ||
       schema.schema_definition.primary_component?.table;
 
@@ -659,24 +686,13 @@ export class FormGenerator {
               formData[rel.source_field] = entityData[rel.graphql_field].id;
               // Set the relationship field (for form display) - keep the object for the RelationshipSelect
               formData[rel.name] = entityData[rel.graphql_field];
-              console.log(
-                `Set foreign key ${rel.source_field} = ${
-                  entityData[rel.graphql_field].id
-                } and relationship ${rel.name} = object for relationship ${rel.graphql_field}`
-              );
             } else {
               // Handle null/empty relationship
               formData[rel.source_field] = null;
               formData[rel.name] = null;
-              console.log(
-                `Set null values for foreign key ${rel.source_field} and relationship ${rel.name}`
-              );
             }
             // Remove the GraphQL field name from form data since we've moved it to the relationship name
             delete formData[rel.graphql_field];
-            console.log(
-              `Removed GraphQL field ${rel.graphql_field} from form data`
-            );
           }
           // For one-to-many and many-to-many, keep the array structure
         });
@@ -690,6 +706,7 @@ export class FormGenerator {
 
   buildInsertMutation(schema: Schema): string {
     const tableName =
+      schema.schema_definition.table?.hasura_table_name ||
       schema.schema_definition.table?.name ||
       schema.schema_definition.primary_component?.table;
 
@@ -706,6 +723,7 @@ export class FormGenerator {
 
   buildUpdateMutation(schema: Schema): string {
     const tableName =
+      schema.schema_definition.table?.hasura_table_name ||
       schema.schema_definition.table?.name ||
       schema.schema_definition.primary_component?.table;
     const primaryKey = schema.schema_definition.fields.find(

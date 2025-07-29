@@ -4,7 +4,10 @@ import { SchemaManager } from "@/lib/schema/SchemaManager";
 import { CacheManager } from "@/lib/schema/CacheManager";
 import { gql } from "@apollo/client";
 
-const cacheManager = new CacheManager(process.env.REDIS_URL);
+const cacheManager = new CacheManager(
+  process.env.REDIS_URL,
+  process.env.CACHE === "true"
+);
 
 // Helper function to build table name from schema name
 function getTableName(schemaName: string): string {
@@ -24,7 +27,7 @@ function buildListQuery(
   relationships: any[] = []
 ): string {
   const fieldSelections = fields
-    .filter((field) => !field.ui_config?.hidden)
+    .filter((field) => !field.ui_config?.hidden || field.name === "id")
     .map((field) => {
       if (field.name.includes(".")) {
         const [parent, child] = field.name.split(".");
@@ -115,9 +118,18 @@ export async function GET(
     }
 
     // Default ordering
-    const order_by = [{ created_at: "desc" }];
+    let order_by: { [key: string]: string }[] = [{ created_at: "desc" }];
+    if (schema.ui_schema?.list_view?.default_sort) {
+      order_by = [
+        {
+          [schema.ui_schema.list_view.default_sort.field]:
+            schema.ui_schema.list_view.default_sort.direction,
+        },
+      ];
+    }
 
     try {
+      //console.log("fields in get api", fields);
       // Build and execute the query
       const query = buildListQuery(tableName, fields, relationships);
 
@@ -170,7 +182,6 @@ export async function POST(
 ) {
   try {
     const { data } = await request.json();
-    console.log("request  data", data);
     const resolvedParams = await params;
     const schemaName = resolvedParams.schemaName;
 
@@ -195,7 +206,6 @@ export async function POST(
     `;
 
     try {
-      console.log("data", data);
       const response = await hasuraClient.mutate({
         mutation,
         variables: { object: data },

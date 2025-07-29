@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { X, Upload, Link as LinkIcon } from "lucide-react";
+import { X, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -40,8 +40,6 @@ export function AddAssetModal({
         const uploadedFiles = [];
 
         for (const file of acceptedFiles) {
-          console.log("Uploading file:", file.name, file.type, file.size);
-
           // Step 1: Get signed URL
           const signedUrlResponse = await fetch("/api/media/signed-url", {
             method: "POST",
@@ -65,7 +63,6 @@ export function AddAssetModal({
           const { uploadUrl, s3Key, fields } = await signedUrlResponse.json();
 
           // Step 2: Upload to S3 using signed URL (PUT method)
-          console.log("Uploading to S3:", uploadUrl);
 
           const uploadResponse = await fetch(uploadUrl, {
             method: "PUT",
@@ -143,7 +140,6 @@ export function AddAssetModal({
     setUploading(true);
     try {
       // TODO: Implement URL upload logic
-      console.log("Uploading from URL:", urlInput);
 
       // Simulate upload
       await new Promise((resolve) => setTimeout(resolve, 2000));

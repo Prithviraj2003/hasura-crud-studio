@@ -11,12 +11,14 @@ interface RelationshipRendererProps {
   relationship: RelationshipConfig;
   relatedSchema?: any;
   parentId?: string;
+  mode?: "create" | "edit";
 }
 
 export const RelationshipRenderer: React.FC<RelationshipRendererProps> = ({
   relationship,
   relatedSchema,
   parentId,
+  mode,
 }) => {
   const { control } = useFormContext();
 
@@ -32,7 +34,12 @@ export const RelationshipRenderer: React.FC<RelationshipRendererProps> = ({
       />
     );
   }
-  console.log("relationship", relationship);
+
+  // Determine if this relationship should be disabled in edit mode
+  // For many-to-one and one-to-one relationships, they represent foreign keys that shouldn't be changed
+  const shouldDisableInEdit =
+    mode === "edit" &&
+    (relationship.type === "many-to-one" || relationship.type === "one-to-one");
 
   // Use RelationshipSelect for other relationship types
   return (
@@ -50,6 +57,7 @@ export const RelationshipRenderer: React.FC<RelationshipRendererProps> = ({
           targetComponent={relationship.targetComponent || ""}
           displayField={relationship.displayField || "name"}
           placeholder={`Select ${relationship.title}`}
+          disabled={shouldDisableInEdit}
         />
       </CardContent>
     </Card>

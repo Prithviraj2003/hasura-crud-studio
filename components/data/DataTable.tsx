@@ -1,14 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Edit,
-  Trash2,
-  Search,
-  Filter,
-} from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { ChevronLeft, ChevronRight, Edit, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -27,7 +20,7 @@ interface DataTableProps {
   schemaName: string;
   schema: any;
   onEdit: (recordId: string) => void;
-  onDelete: (recordId: string) => void;
+  // onDelete: (recordId: string) => void;
 }
 
 interface PaginationState {
@@ -40,7 +33,7 @@ export const DataTable: React.FC<DataTableProps> = ({
   schemaName,
   schema,
   onEdit,
-  onDelete,
+  // onDelete,
 }) => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,11 +44,37 @@ export const DataTable: React.FC<DataTableProps> = ({
     total: 0,
   });
   const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState<Record<string, any>>({});
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [filters] = useState<Record<string, any>>({});
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [shouldMaintainFocus, setShouldMaintainFocus] = useState(false);
+
+  // Debounce effect for search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     loadData();
-  }, [schemaName, pagination.page, pagination.pageSize, searchTerm, filters]);
+  }, [
+    schemaName,
+    pagination.page,
+    pagination.pageSize,
+    debouncedSearchTerm,
+    filters,
+  ]);
+
+  // Restore focus after data load if search was being used
+  useEffect(() => {
+    if (shouldMaintainFocus && searchInputRef.current) {
+      searchInputRef.current.focus();
+      setShouldMaintainFocus(false);
+    }
+  }, [data, shouldMaintainFocus]);
 
   const loadData = async () => {
     try {
@@ -65,7 +84,7 @@ export const DataTable: React.FC<DataTableProps> = ({
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         pageSize: pagination.pageSize.toString(),
-        ...(searchTerm && { search: searchTerm }),
+        ...(debouncedSearchTerm && { search: debouncedSearchTerm }),
         ...Object.fromEntries(
           Object.entries(filters).filter(([_, value]) => value !== "")
         ),
@@ -98,10 +117,14 @@ export const DataTable: React.FC<DataTableProps> = ({
     setPagination((prev) => ({ ...prev, page: 1, pageSize: newPageSize }));
   };
 
-  const handleSearch = (term: string) => {
+  const handleSearch = useCallback((term: string) => {
     setSearchTerm(term);
     setPagination((prev) => ({ ...prev, page: 1 }));
-  };
+    // Mark that we should maintain focus after the search completes
+    if (term.length > 0) {
+      setShouldMaintainFocus(true);
+    }
+  }, []);
 
   // const handleDelete = async (recordId: string) => {
   //   // Check if this schema has relationships that might need cascading
@@ -268,8 +291,6 @@ export const DataTable: React.FC<DataTableProps> = ({
 
     // Handle objects (relationships)
     if (typeof value === "object" && value !== null) {
-      console.log("value", value);
-
       for (const key in value) {
         if (key.includes("name")) {
           return value[key];
@@ -291,7 +312,6 @@ export const DataTable: React.FC<DataTableProps> = ({
 
   const displayColumns = getDisplayColumns();
   const totalPages = Math.ceil(pagination.total / pagination.pageSize);
-  console.log("data", data);
 
   if (loading) {
     return (
@@ -316,17 +336,17 @@ export const DataTable: React.FC<DataTableProps> = ({
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search records..."
+                  ref={searchInputRef}
+                  placeholder={`Search records with ${schema.ui_schema?.list_view?.searchable_columns.join(
+                    ", "
+                  )}`}
+                  autoFocus
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
                   className="pl-10"
                 />
               </div>
             </div>
-            <Button variant="outline" size="sm">
-              <Filter className="w-4 h-4 mr-2" />
-              Filters
-            </Button>
           </div>
         </CardContent>
       </Card>

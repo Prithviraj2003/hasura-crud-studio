@@ -536,8 +536,6 @@ export const DynamicSchemaForm: React.FC<DynamicSchemaFormProps> = ({
 
   const hasTabs = formConfig.layout?.tabs && formConfig.layout.tabs.length > 1;
 
-  console.log("activeTab", activeTab);
-
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
@@ -585,6 +583,7 @@ export const DynamicSchemaForm: React.FC<DynamicSchemaFormProps> = ({
             ) : (
               <SchemaRenderer
                 config={formConfig}
+                sections={[formConfig.layout.sections[0].title]}
                 parentId={getCurrentParentId()}
               />
             )}

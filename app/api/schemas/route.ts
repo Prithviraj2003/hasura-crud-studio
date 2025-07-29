@@ -3,7 +3,10 @@ import { getHasuraAdminClient } from "@/lib/hasura/client";
 import { SchemaManager } from "@/lib/schema/SchemaManager";
 import { CacheManager } from "@/lib/schema/CacheManager";
 
-const cacheManager = new CacheManager(process.env.REDIS_URL);
+const cacheManager = new CacheManager(
+  process.env.REDIS_URL,
+  process.env.CACHE === "true"
+);
 
 export async function GET(request: NextRequest) {
   try {

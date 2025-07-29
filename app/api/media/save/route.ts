@@ -9,15 +9,6 @@ export async function POST(request: NextRequest) {
     const { s3Key, filename, contentType, size, folderId, metadata } =
       await request.json();
 
-    console.log("Saving media item:", {
-      s3Key,
-      filename,
-      contentType,
-      size,
-      folderId,
-      metadata,
-    });
-
     if (!s3Key || !filename || !contentType || !size) {
       return NextResponse.json(
         { error: "s3Key, filename, contentType, and size are required" },

@@ -21,7 +21,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { RelationshipConfig } from "@/lib/schema/FormGenerator";
 import { DynamicFieldRenderer } from "./DynamicFieldRenderer";
-import { IdGeneratorService } from "@/lib/services/IdGeneratorService";
 
 interface OneToManyManagerProps {
   relationship: RelationshipConfig;
@@ -104,17 +103,7 @@ export const OneToManyManager: React.FC<OneToManyManagerProps> = ({
 
     if (schema?.schema_definition?.fields) {
       for (const field of schema.schema_definition.fields) {
-        if (field.auto_generate && field.primary_key) {
-          // Generate ID from the API for auto_generate=true fields
-          try {
-            emptyItem[field.name] = await IdGeneratorService.generateId();
-          } catch (error) {
-            console.error("Failed to generate ID, using fallback:", error);
-            emptyItem[field.name] = `temp_${Date.now()}_${Math.random()
-              .toString(36)
-              .substr(2, 9)}`;
-          }
-        } else if (field.default !== undefined) {
+        if (field.default !== undefined) {
           emptyItem[field.name] = field.default;
         } else if (field.type === "boolean") {
           emptyItem[field.name] = false;

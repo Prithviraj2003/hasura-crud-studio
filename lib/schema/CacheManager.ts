@@ -9,8 +9,11 @@ export class CacheManager {
   private redis: Redis | null = null;
   private localCache: Map<string, CacheItem<any>> = new Map();
   private defaultTTL: number = 300; // 5 minutes
+  private cacheEnabled: boolean = false;
 
-  constructor(redisUrl?: string) {
+  constructor(redisUrl?: string, enableCache?: boolean) {
+    // Enable caching based on environment variable or explicit parameter
+    this.cacheEnabled = enableCache ?? process.env.CACHE === "true";
     if (redisUrl && typeof window === "undefined") {
       // Only initialize Redis on server-side
       try {
@@ -26,6 +29,11 @@ export class CacheManager {
   }
 
   async get<T = any>(key: string): Promise<T | null> {
+    // Return null if caching is disabled
+    if (!this.cacheEnabled) {
+      return null;
+    }
+
     // Check local cache first
     if (this.localCache.has(key)) {
       const cached = this.localCache.get(key)!;

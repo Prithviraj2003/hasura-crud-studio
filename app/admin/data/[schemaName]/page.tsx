@@ -63,11 +63,6 @@ export default function SchemaDataPage() {
     router.push(`/admin/data/${schemaName}/${recordId}/edit`);
   };
 
-  const handleDeleteRecord = (recordId: string) => {
-    // Delete logic is handled in DataTable component
-    console.log("Delete record:", recordId);
-  };
-
   const handleRefresh = () => {
     loadSchema();
   };
@@ -153,7 +148,11 @@ export default function SchemaDataPage() {
               <h1 className="text-3xl font-bold flex items-center space-x-3">
                 <Database className="w-8 h-8" />
                 <span>{schema.name}</span>
-                <Badge variant={schema.schema_type === "page" ? "default" : "secondary"}>
+                <Badge
+                  variant={
+                    schema.schema_type === "page" ? "default" : "secondary"
+                  }
+                >
                   {schema.schema_type}
                 </Badge>
               </h1>
@@ -171,7 +170,10 @@ export default function SchemaDataPage() {
               <RefreshCw className="w-4 h-4" />
               <span>Refresh</span>
             </Button>
-            <Button onClick={handleAddRecord} className="flex items-center space-x-2">
+            <Button
+              onClick={handleAddRecord}
+              className="flex items-center space-x-2"
+            >
               <Plus className="w-4 h-4" />
               <span>Add Record</span>
             </Button>
@@ -231,7 +233,7 @@ export default function SchemaDataPage() {
           schemaName={schemaName}
           schema={schema}
           onEdit={handleEditRecord}
-          onDelete={handleDeleteRecord}
+          // onDelete={handleDeleteRecord}
         />
       </div>
     </div>

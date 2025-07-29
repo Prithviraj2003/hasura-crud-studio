@@ -43,8 +43,6 @@ export class HasuraAdminClient {
     try {
       const mutationString =
         options.mutation.loc?.source?.body || options.mutation;
-      console.log("mutationString", mutationString);
-      console.log("options.variables", options.variables);
       return await this.client.request(mutationString, options.variables);
     } catch (error: any) {
       console.error("Hasura Admin Mutation Error:", error);

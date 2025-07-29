@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Database, Plus, Eye, Edit, Trash2, Table } from "lucide-react";
+import { Database, Eye, Table } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 interface Schema {
@@ -60,34 +59,34 @@ export default function SchemasPage() {
     router.push(`/admin/data/${schemaName}`);
   };
 
-  const handleEditSchema = (schemaName: string) => {
-    router.push(`/admin/schemas/${schemaName}/edit`);
-  };
+  // const handleEditSchema = (schemaName: string) => {
+  //   router.push(`/admin/schemas/${schemaName}/edit`);
+  // };
 
-  const handleDeleteSchema = async (schemaName: string, version: string) => {
-    if (!confirm(`Are you sure you want to delete schema "${schemaName}"?`)) {
-      return;
-    }
+  // const handleDeleteSchema = async (schemaName: string, version: string) => {
+  //   if (!confirm(`Are you sure you want to delete schema "${schemaName}"?`)) {
+  //     return;
+  //   }
 
-    try {
-      const response = await fetch(
-        `/api/schemas?name=${schemaName}&version=${version}`,
-        {
-          method: "DELETE",
-        }
-      );
+  //   try {
+  //     const response = await fetch(
+  //       `/api/schemas?name=${schemaName}&version=${version}`,
+  //       {
+  //         method: "DELETE",
+  //       }
+  //     );
 
-      if (!response.ok) {
-        throw new Error("Failed to delete schema");
-      }
+  //     if (!response.ok) {
+  //       throw new Error("Failed to delete schema");
+  //     }
 
-      // Reload schemas
-      loadSchemas();
-    } catch (err: any) {
-      console.error("Error deleting schema:", err);
-      setError(err.message);
-    }
-  };
+  //     // Reload schemas
+  //     loadSchemas();
+  //   } catch (err: any) {
+  //     console.error("Error deleting schema:", err);
+  //     setError(err.message);
+  //   }
+  // };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -127,10 +126,10 @@ export default function SchemasPage() {
               Manage your database schemas and view their data
             </p>
           </div>
-          <Button className="flex items-center space-x-2">
+          {/* <Button className="flex items-center space-x-2">
             <Plus className="w-4 h-4" />
             <span>Create Schema</span>
-          </Button>
+          </Button> */}
         </div>
 
         {/* Error Alert */}
@@ -153,13 +152,13 @@ export default function SchemasPage() {
               <div className="text-center py-8">
                 <Database className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No schemas found</h3>
-                <p className="text-muted-foreground mb-4">
+                {/* <p className="text-muted-foreground mb-4">
                   Create your first schema to get started
                 </p>
                 <Button>
                   <Plus className="w-4 h-4 mr-2" />
                   Create Schema
-                </Button>
+                </Button> */}
               </div>
             ) : (
               <TableComponent>
@@ -206,14 +205,14 @@ export default function SchemasPage() {
                             <Table className="w-3 h-3" />
                             <span>Data</span>
                           </Button>
-                          <Button
+                          {/* <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleEditSchema(schema.name)}
                           >
                             <Edit className="w-3 h-3" />
-                          </Button>
-                          <Button
+                          </Button> */}
+                          {/* <Button
                             size="sm"
                             variant="outline"
                             onClick={() =>
@@ -222,7 +221,7 @@ export default function SchemasPage() {
                             className="text-destructive hover:text-destructive"
                           >
                             <Trash2 className="w-3 h-3" />
-                          </Button>
+                          </Button> */}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -253,7 +252,10 @@ export default function SchemasPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Components</p>
                   <p className="text-2xl font-bold">
-                    {schemas.filter((s) => s.schema_type === "component").length}
+                    {
+                      schemas.filter((s) => s.schema_type === "component")
+                        .length
+                    }
                   </p>
                 </div>
               </div>

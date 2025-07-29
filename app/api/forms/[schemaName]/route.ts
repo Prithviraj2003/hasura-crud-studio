@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getHasuraAdminClient, getDynamicClient } from "@/lib/hasura/client";
+import { getHasuraAdminClient } from "@/lib/hasura/client";
 import { SchemaManager } from "@/lib/schema/SchemaManager";
 import { FormGenerator } from "@/lib/schema/FormGenerator";
 import { CacheManager } from "@/lib/schema/CacheManager";
 import { IdGeneratorService } from "@/lib/services/IdGeneratorService";
 
-const cacheManager = new CacheManager(process.env.REDIS_URL);
+const cacheManager = new CacheManager(
+  process.env.REDIS_URL,
+  process.env.CACHE === "true"
+);
 
 export async function GET(
   request: NextRequest,
@@ -50,7 +53,6 @@ export async function POST(
 
     const hasuraClient = getHasuraAdminClient();
     const schemaManager = new SchemaManager(hasuraClient, cacheManager);
-    const dynamicClient = getDynamicClient();
 
     const resolvedParams = await params;
     const schema = await schemaManager.getSchema(resolvedParams.schemaName);
@@ -84,7 +86,7 @@ export async function POST(
         if (!primaryKey) throw new Error("No primary key found");
 
         // Filter data to only include schema-defined fields
-        const filteredData = filterDataForSchema(data, schema);
+        // const filteredData = filterDataForSchema(data, schema);
 
         const mutation = `
           mutation UpdateEntity($id: String!, $data: ${tableName}_set_input!) {
@@ -99,16 +101,13 @@ export async function POST(
 
         const response = await hasuraClient.request(mutation, {
           id: entityId,
-          data: filteredData,
+          data: data,
         });
 
         result = response[`update_${tableName}_by_pk`];
       } else {
         // Create
         // Filter data to only include schema-defined fields
-        console.log("data", data);
-        const filteredData = filterDataForSchema(data, schema);
-        console.log("filteredData", filteredData);
 
         const mutation = `
           mutation CreateEntity($data: ${tableName}_insert_input!) {
@@ -117,12 +116,12 @@ export async function POST(
             }
           }
         `;
+        const id = await IdGeneratorService.generateId();
+        data.id = id;
 
         const response = await hasuraClient.request(mutation, {
-          data: filteredData,
+          data: data,
         });
-
-        console.log("mutation response", filteredData, mutation);
 
         result = response[`insert_${tableName}_one`];
       }
@@ -148,20 +147,6 @@ async function executeComplexMutation(
   // handle the complex relationships properly
   const tableName = getTableName(schema);
 
-  // Debug: Log the incoming data structure
-  console.log(
-    "executeComplexMutation received data:",
-    JSON.stringify(data, null, 2)
-  );
-  console.log(
-    "schema fields:",
-    schema.schema_definition.fields.map((f: any) => f.name)
-  );
-  console.log(
-    "schema relationships:",
-    schema.relationships?.map((r: any) => r.name) || []
-  );
-
   // Extract main entity data and relationship data
   const mainData: any = {};
   const relationshipData: any = {};
@@ -181,7 +166,6 @@ async function executeComplexMutation(
 
   // Extract relationship data
   for (const rel of schema.relationships || []) {
-    console.log("rel", rel);
     if (data[rel.name] !== undefined) {
       relationshipData[rel.source_field] = data[rel.name];
     }
@@ -189,12 +173,6 @@ async function executeComplexMutation(
       mainData[rel.source_field] = data[rel.name] || data[rel.source_field];
     }
   }
-
-  console.log(
-    "Separated relationshipData:",
-    JSON.stringify(relationshipData, null, 2)
-  );
-
   // Start transaction-like operation
   const results: any = {};
 
@@ -233,7 +211,8 @@ async function executeComplexMutation(
       }
     `;
 
-    mainData.id = await IdGeneratorService.generateId();
+    const id = await IdGeneratorService.generateId();
+    mainData.id = id;
 
     const response = await hasuraClient.request(createMutation, {
       data: mainData,
@@ -301,9 +280,6 @@ async function createRelationshipItems(
     // Remove tracking fields after processing
     delete processedItem._parentIdField;
 
-    console.log("Processed item for mutation:", processedItem);
-    console.log("=== End processing item ===");
-
     return processedItem;
   });
 
@@ -320,31 +296,12 @@ async function createRelationshipItems(
   `;
 
   try {
-    console.log(`Creating ${relationship.name} items:`, {
-      targetTableName,
-      itemsToInsert,
-      mutation: insertMutation,
-    });
-
     const response = await hasuraClient.request(insertMutation, {
       items: itemsToInsert,
     });
 
-    console.log(
-      `Created ${response[`insert_${targetTableName}`].affected_rows} ${
-        relationship.name
-      } items`
-    );
     return response[`insert_${targetTableName}`];
   } catch (error: any) {
-    console.error(`Error creating ${relationship.name} items:`, {
-      error: error.message,
-      graphQLErrors: error.graphQLErrors,
-      networkError: error.networkError,
-      targetTableName,
-      itemsToInsert,
-      mutation: insertMutation,
-    });
     throw new Error(
       `Failed to create ${relationship.name} items: ${error.message}`
     );
@@ -356,6 +313,7 @@ function getTableName(schema: any): string {
     return schema;
   }
   return (
+    schema.schema_definition.table?.hasura_table_name ||
     schema.schema_definition.table?.name ||
     schema.schema_definition.primary_component?.table ||
     `${schema.name}s`
@@ -371,38 +329,28 @@ function pascalCase(str: string): string {
 /**
  * Filters data to only include fields defined in the schema
  */
-function filterDataForSchema(data: any, schema: any): any {
-  const filteredData: any = {};
-  const schemaFieldNames = new Set(
-    schema.schema_definition.fields.map((field: any) => field.name)
-  );
-  console.log("schemaFieldNames", schemaFieldNames);
+// function filterDataForSchema(data: any, schema: any): any {
+//   const filteredData: any = {};
+//   const schemaFieldNames = new Set(
+//     schema.schema_definition.fields.map((field: any) => field.name)
+//   );
 
-  // Only include fields that are defined in the schema and are not auto-generated/primary key/auto-update
-  for (const [fieldName, fieldValue] of Object.entries(data)) {
-    console.log("fieldName", fieldName);
-    console.log("fieldValue", fieldValue);
-    if (schemaFieldNames.has(fieldName)) {
-      console.log("schemaFieldNames", schemaFieldNames);
-      const field = schema.schema_definition.fields.find(
-        (f: any) => f.name === fieldName
-      );
-      console.log("field", field);
-      if (
-        field &&
-        !field.auto_generate &&
-        !field.primary_key &&
-        !field.auto_update
-      ) {
-        console.log("filteredData", filteredData);
-        filteredData[fieldName] = fieldValue;
-      }
-    }
-  }
+//   // Only include fields that are defined in the schema and are not auto-generated/primary key/auto-update
+//   for (const [fieldName, fieldValue] of Object.entries(data)) {
+//     if (schemaFieldNames.has(fieldName)) {
+//       const field = schema.schema_definition.fields.find(
+//         (f: any) => f.name === fieldName
+//       );
+//       if (
+//         field &&
+//         !field.auto_generate &&
+//         !field.primary_key &&
+//         !field.auto_update
+//       ) {
+//         filteredData[fieldName] = fieldValue;
+//       }
+//     }
+//   }
 
-  console.log(
-    `Filtered form data for ${schema.name}:`,
-    Object.keys(filteredData)
-  );
-  return filteredData;
-}
+//   return filteredData;
+// }

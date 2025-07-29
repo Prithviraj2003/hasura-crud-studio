@@ -15,7 +15,6 @@ export default function EditRecordPage() {
   const recordId = params.recordId as string;
 
   const handleSave = (data: any) => {
-    console.log("Record saved:", data);
     // Stay on the edit page after saving - no redirection
     // Show success message to user
     toast.success("Record updated successfully!", {

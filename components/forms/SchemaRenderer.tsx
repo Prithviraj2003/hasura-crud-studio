@@ -19,7 +19,8 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
   relationships,
   parentId,
 }) => {
-  const { schema, fields, layout } = config;
+  const { fields, layout } = config;
+
   if (sections || relationships) {
     // Tab-based rendering
     return (
@@ -50,6 +51,7 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
                   relationship={rel}
                   relatedSchema={relatedSchema}
                   parentId={parentId}
+                  mode={config.mode}
                 />
               </div>
             ) : null;
@@ -78,6 +80,7 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
                   <RelationshipRenderer
                     relationship={rel}
                     relatedSchema={relatedSchema}
+                    mode={config.mode}
                   />
                 </div>
               );
@@ -111,6 +114,7 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
                   relationship={rel}
                   relatedSchema={relatedSchema}
                   parentId={parentId}
+                  mode={config.mode}
                 />
               </div>
             );

@@ -19,7 +19,7 @@ export class OperationLoader {
 
   constructor() {
     const hasuraClient = getHasuraAdminClient();
-    this.cacheManager = new CacheManager();
+    this.cacheManager = new CacheManager("", process.env.CACHE === "true");
     this.schemaManager = new SchemaManager(hasuraClient, this.cacheManager);
     this.graphqlGenerator = new GraphQLGenerator();
   }
@@ -136,7 +136,6 @@ export class OperationLoader {
     // Check mutation patterns
     for (const pattern of mutationPatterns) {
       const match = operationName.match(pattern);
-      console.log("match", match);
       if (match) {
         const action = operationName
           .replace(match[1], "")

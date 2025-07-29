@@ -25,7 +25,6 @@ interface FieldRendererProps {
 }
 
 export const FieldRenderer: React.FC<FieldRendererProps> = ({ field }) => {
-  console.log("field in field renderer", field);
   const {
     register,
     control,
@@ -62,7 +61,6 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({ field }) => {
   const error = errors[name]?.message as string | undefined;
 
   const renderWidget = () => {
-    console.log("widget", widget);
     switch (widget) {
       case "text_input":
         return (
@@ -255,7 +253,6 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({ field }) => {
         );
 
       case "relationship_select":
-        console.log("field in relationship select", field);
         return (
           <RelationshipSelect
             name={name}
@@ -306,16 +303,18 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({ field }) => {
           />
         );
 
-      case "rich_text_editor":
+      case "rich_text":
         return (
-          <RichTextEditor
-            name={name}
-            control={control}
-            placeholder={placeholder}
-            disabled={readonly}
-            error={error}
-            validation={validation}
-          />
+          <div key={field.name} className="col-span-2">
+            <RichTextEditor
+              name={name}
+              control={control}
+              placeholder={placeholder}
+              disabled={readonly}
+              error={error}
+              validation={validation}
+            />
+          </div>
         );
 
       case "hidden":

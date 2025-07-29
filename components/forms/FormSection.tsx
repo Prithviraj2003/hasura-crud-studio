@@ -18,11 +18,9 @@ export const FormSection: React.FC<FormSectionProps> = ({
   section,
   fields,
 }) => {
-  console.log("fields", fields);
   const sectionFields = fields.filter((field) =>
     section.fields.includes(field.name)
   );
-  console.log("sectionFields", sectionFields);
 
   return (
     <Card>
@@ -38,7 +36,10 @@ export const FormSection: React.FC<FormSectionProps> = ({
           {sectionFields
             .filter((field) => !field.hidden)
             .map((field) => (
-              <div key={field.name} className="col-span-1">
+              <div
+                key={field.name}
+                className={`col-span-${field.grid_cols || 1}`}
+              >
                 <FieldRenderer field={field} />
               </div>
             ))}

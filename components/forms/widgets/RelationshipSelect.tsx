@@ -89,8 +89,6 @@ export const RelationshipSelect: React.FC<RelationshipSelectProps> = ({
         control={control}
         rules={validation}
         render={({ field, fieldState }) => {
-          console.log("field", field);
-          console.log("fieldState", fieldState);
           return (
             <div className="space-y-2">
               {placeholder && (

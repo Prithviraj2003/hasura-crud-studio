@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getHasuraAdminClient } from "@/lib/hasura/client";
+import { getHasuraAdminClient, HasuraAdminClient } from "@/lib/hasura/client";
+import { SchemaManager } from "@/lib/schema/SchemaManager";
 
 export async function GET(
   request: NextRequest,
@@ -14,53 +15,35 @@ export async function GET(
     const resolvedParams = await params;
     const componentName = resolvedParams.componentName;
 
-    console.log("Fetching options for component:", componentName);
-
     const adminClient = getHasuraAdminClient();
 
     let data = [];
     let queryExecuted = false;
 
-    // Map component names to actual table names based on schema
-    const componentToTableMap: Record<string, string> = {};
-
-    // Try different query variations including mapped table names
-    const queryVariations = [
-      componentToTableMap[componentName] || componentName,
-      componentName,
-      componentName.toLowerCase(),
-      `health_${componentName.toLowerCase()}`,
-      `health_${componentName.toLowerCase()}s`,
-    ];
-
-    for (const tableName of queryVariations) {
-      try {
-        const query = `
-          query GetComponentOptions($limit: Int, $orderBy: ${tableName}_order_by!) {
-            ${tableName}(limit: $limit, order_by: [$orderBy]) {
+    try {
+      const query = `
+          query GetComponentOptions($limit: Int, $orderBy: ${componentName}_order_by!) {
+            ${componentName}(limit: $limit, order_by: [$orderBy]) {
               id
-              ${getDisplayFields(tableName)}
+              ${await getOptionTitleField(componentName, adminClient)}
             }
           }
         `;
 
-        const variables = {
-          limit,
-          orderBy: { [orderBy]: direction },
-        };
+      const variables = {
+        limit,
+        orderBy: { [orderBy]: direction },
+      };
 
-        console.log(`Trying query for table: ${tableName}`);
-        console.log("Query:", query);
+      const result = await adminClient.request(query, variables);
+      data = result[componentName] || [];
 
-        const result = await adminClient.request(query, variables);
-        data = result[tableName] || [];
-
-        queryExecuted = true;
-        break;
-      } catch (error) {
-        console.log(`Query failed for ${tableName}:`, (error as Error).message);
-        continue;
-      }
+      queryExecuted = true;
+    } catch (error) {
+      console.log(
+        `Query failed for ${componentName}:`,
+        (error as Error).message
+      );
     }
 
     if (!queryExecuted) {
@@ -85,36 +68,16 @@ export async function GET(
   }
 }
 
-function getDisplayFields(componentName: string): string {
-  // Map component names to table names for lookups
-  const componentToTableMap: Record<string, string> = {
-    product: "products",
-    insurer: "insurers",
-    compare_feature: "compare_features",
-    health_feature_value: "health_feature_value",
-    health_product_variants: "health_product_variants",
-  };
+async function getOptionTitleField(
+  componentName: string,
+  adminClient: HasuraAdminClient
+): Promise<string> {
+  const schemaManager = new SchemaManager(adminClient);
+  const schema = await schemaManager.getSchema(componentName);
 
-  const tableName = componentToTableMap[componentName] || componentName;
+  const field = schema?.schema_definition.fields.find(
+    (field) => field.is_option_title
+  );
 
-  // Field mappings based on actual table names from schema
-  const fieldMappings: Record<string, string[]> = {
-    default: ["name", "title", "label"],
-  };
-
-  const fields =
-    fieldMappings[tableName] ||
-    fieldMappings[componentName] ||
-    fieldMappings.default;
-
-  // Process fields to handle dotted notation
-  const processedFields = fields.map((field) => {
-    if (field.includes(".")) {
-      const [parent, child] = field.split(".");
-      return `${parent} {\n              ${child}\n            }`;
-    }
-    return field;
-  });
-
-  return processedFields.join("\n            ");
+  return field?.name || "name";
 }

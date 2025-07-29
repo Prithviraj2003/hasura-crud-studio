@@ -41,23 +41,10 @@ export class ChangeDetector {
     );
     result.mainEntityData = mainEntityFields;
 
-    console.log("Main entity change detection:", {
-      hasChanges: result.hasMainEntityChanges,
-      originalKeys: Object.keys(originalMainFields),
-      currentKeys: Object.keys(mainEntityFields),
-      originalData: originalMainFields,
-      currentData: mainEntityFields,
-    });
-
     // Check for relationship changes
     relationships.forEach((relationship) => {
       const originalRelData = originalData[relationship.name] || [];
       const currentRelData = currentData[relationship.name] || [];
-
-      console.log(`Checking relationship ${relationship.name}:`, {
-        originalCount: originalRelData.length,
-        currentCount: currentRelData.length,
-      });
 
       const relationshipChanges = this.detectRelationshipChanges(
         originalRelData,
@@ -71,12 +58,6 @@ export class ChangeDetector {
       ) {
         result.hasRelationshipChanges = true;
         result.changedRelationships[relationship.name] = relationshipChanges;
-        console.log(
-          `Relationship ${relationship.name} has changes:`,
-          relationshipChanges
-        );
-      } else {
-        console.log(`Relationship ${relationship.name} has no changes`);
       }
     });
 
@@ -109,11 +90,6 @@ export class ChangeDetector {
       const currentHasKey = currentKeys.includes(key);
 
       if (originalHasKey !== currentHasKey) {
-        console.log("Object changed: key existence differs", {
-          key,
-          originalHasKey,
-          currentHasKey,
-        });
         return true;
       }
 
@@ -146,8 +122,10 @@ export class ChangeDetector {
     // Handle different types
     if (typeof a !== typeof b) {
       // Special case: string/number comparison (form inputs often convert)
-      if ((typeof a === 'string' && typeof b === 'number') || 
-          (typeof a === 'number' && typeof b === 'string')) {
+      if (
+        (typeof a === "string" && typeof b === "number") ||
+        (typeof a === "number" && typeof b === "string")
+      ) {
         return String(a) === String(b);
       }
       return false;
@@ -163,12 +141,12 @@ export class ChangeDetector {
     }
 
     // Handle objects
-    if (typeof a === 'object' && typeof b === 'object') {
+    if (typeof a === "object" && typeof b === "object") {
       const keysA = Object.keys(a);
       const keysB = Object.keys(b);
-      
+
       if (keysA.length !== keysB.length) return false;
-      
+
       for (const key of keysA) {
         if (!keysB.includes(key)) return false;
         if (!this.isEqual(a[key], b[key])) return false;

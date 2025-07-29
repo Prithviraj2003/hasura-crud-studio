@@ -1,9 +1,6 @@
 "use client";
 
 import React from "react";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { DynamicSchemaForm } from "@/components/forms/DynamicSchemaForm";
 
@@ -12,10 +9,9 @@ export default function NewRecordPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const schemaName = params.schemaName as string;
-  const parentId = searchParams.get('parentId');
+  const parentId = searchParams.get("parentId");
 
   const handleSave = (data: any) => {
-    console.log("Record created:", data);
     // Navigate back to the data listing page
     router.push(`/admin/data/${schemaName}`);
   };

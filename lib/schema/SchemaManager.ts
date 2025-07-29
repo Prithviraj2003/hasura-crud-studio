@@ -8,9 +8,10 @@ export class SchemaManager {
   private cache: CacheManager;
   private generator: GraphQLGenerator;
 
-  constructor(hasuraClient: any, cacheManager: CacheManager) {
+  constructor(hasuraClient: any, cacheManager?: CacheManager) {
     this.hasuraClient = hasuraClient;
-    this.cache = cacheManager;
+    this.cache =
+      cacheManager || new CacheManager("", process.env.CACHE === "true");
     this.generator = new GraphQLGenerator();
   }
 
@@ -267,7 +268,7 @@ export class SchemaManager {
 
   async listSchemas(type?: "component" | "page"): Promise<Schema[]> {
     const query = gql`
-      query ListSchemas($type: String) {
+      query ListSchemas${type ? `($type: String)` : ""} {
         cms_config_page_schemas(
           where: {
             is_active: {_eq: true}
