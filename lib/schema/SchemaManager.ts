@@ -33,7 +33,7 @@ export class SchemaManager {
       query = gql`
         query GetLatestSchema($name: String!) {
           cms_config_page_schemas(
-            where: { name: { _eq: $name }, is_active: { _eq: true } }
+            where: { name: { _eq: $name } }
             order_by: { version: desc }
             limit: 1
           ) {
@@ -55,11 +55,7 @@ export class SchemaManager {
       query = gql`
         query GetSchemaByVersion($name: String!, $version: String!) {
           cms_config_page_schemas(
-            where: {
-              name: { _eq: $name }
-              version: { _eq: $version }
-              is_active: { _eq: true }
-            }
+            where: { name: { _eq: $name }, version: { _eq: $version } }
             order_by: { version: desc }
             limit: 1
           ) {

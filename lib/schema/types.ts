@@ -62,6 +62,7 @@ export interface Field {
 export type FieldType =
   | "uuid"
   | "text"
+  | "text[]"
   | "integer"
   | "decimal"
   | "boolean"
@@ -113,6 +114,7 @@ export interface FieldUIConfig {
     field: string;
   };
   grid_cols?: number;
+  max_items?: number;
 }
 
 export interface Relationship {

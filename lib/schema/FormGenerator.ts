@@ -36,6 +36,7 @@ export interface FieldConfig {
   allowedTypes?: string[];
   maxFiles?: number;
   maxFileSize?: number;
+  maxItems?: number;
   targetComponent?: string;
   displayField?: string;
 }
@@ -282,6 +283,7 @@ export class FormGenerator {
           ? relatedRelationship.ui_config?.display_field || "name"
           : undefined,
         grid_cols: field.ui_config?.grid_cols,
+        maxItems: field.ui_config?.max_items,
       };
     });
   }
@@ -383,6 +385,7 @@ export class FormGenerator {
   getDefaultWidget(fieldType: string): string {
     const widgetMap: Record<string, string> = {
       text: "text_input",
+      "text[]": "text_array",
       uuid: "hidden",
       integer: "number_input",
       decimal: "number_input",
@@ -466,6 +469,8 @@ export class FormGenerator {
         defaults[field.name] = false;
       } else if (field.type === "integer" || field.type === "decimal") {
         defaults[field.name] = field.validation?.min || 0;
+      } else if (field.type === "text[]") {
+        defaults[field.name] = [];
       }
 
       // Handle auto-population based on schema configuration
@@ -581,7 +586,7 @@ export class FormGenerator {
           query += `        id\n`;
           query += `        ${rel.ui_config?.display_field}\n`;
 
-          // Add other important fields from related schema
+          // // Add other important fields from related schema
           if (relatedSchema?.schema_definition?.fields) {
             relatedSchema.schema_definition.fields.forEach((field) => {
               if (
@@ -589,7 +594,8 @@ export class FormGenerator {
                 !field.ui_config?.hidden &&
                 field.name !== "id"
               ) {
-                query += `        ${field.name}\n`;
+                console.log("field", field.name);
+                // query += `        ${field.name}\n`;
               }
             });
           }
@@ -602,7 +608,8 @@ export class FormGenerator {
           if (relatedSchema?.schema_definition?.fields) {
             relatedSchema.schema_definition.fields.forEach((field) => {
               if (!field.ui_config?.hidden) {
-                query += `        ${field.name}\n`;
+                console.log("field", field.name);
+                // query += `        ${field.name}\n`;
               }
             });
           }
@@ -614,13 +621,15 @@ export class FormGenerator {
                 nestedRel.type === "many-to-one" ||
                 nestedRel.type === "one-to-one"
               ) {
-                query += `        ${nestedRel.graphql_field} {\n`;
-                query += `          id\n`;
-                query += `          ${nestedRel.ui_config?.display_field}\n`;
-                query += `        }\n`;
+                // console.log("nestedRel", nestedRel.graphql_field);
+                // query += `        ${nestedRel.graphql_field} {\n`;
+                // query += `          id\n`;
+                // query += `          ${nestedRel.ui_config?.display_field}\n`;
+                // query += `        }\n`;
               } else if (nestedRel.type === "one-to-many") {
-                query += `        ${nestedRel.graphql_field} {\n`;
-                query += `          id\n`;
+                console.log("nestedRel", nestedRel.graphql_field);
+                // query += `        ${nestedRel.graphql_field} {\n`;
+                // query += `          id\n`;
                 // Add basic fields for nested one-to-many
                 const nestedSchema = relatedSchemas[nestedRel.target_component];
                 if (nestedSchema?.schema_definition?.fields) {
@@ -629,7 +638,8 @@ export class FormGenerator {
                       !field.ui_config?.hidden &&
                       ["name", "title", "value"].includes(field.name)
                     ) {
-                      query += `          ${field.name}\n`;
+                      console.log("field", field.name);
+                      // query += `          ${field.name}\n`;
                     }
                   });
                 }

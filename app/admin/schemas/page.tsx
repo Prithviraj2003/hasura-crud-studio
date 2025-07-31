@@ -40,7 +40,7 @@ export default function SchemasPage() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch("/api/schemas");
+      const response = await fetch("/api/schemas?type=page");
       if (!response.ok) {
         throw new Error("Failed to load schemas");
       }

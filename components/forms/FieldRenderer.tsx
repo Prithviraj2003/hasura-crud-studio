@@ -19,6 +19,7 @@ import { CurrencyInput } from "@/components/forms/widgets/CurrencyInput";
 import { JsonEditor } from "@/components/forms/widgets/JsonEditor";
 import { FileUploadWidget } from "@/components/forms/widgets/FileUploadWidget";
 import { RichTextEditor } from "@/components/forms/widgets/RichTextEditor";
+import { TextArrayWidget } from "@/components/forms/widgets/TextArrayWidget";
 
 interface FieldRendererProps {
   field: FieldConfig;
@@ -26,7 +27,6 @@ interface FieldRendererProps {
 
 export const FieldRenderer: React.FC<FieldRendererProps> = ({ field }) => {
   const {
-    register,
     control,
     watch,
     formState: { errors },
@@ -317,6 +317,20 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({ field }) => {
           </div>
         );
 
+      case "text_array":
+        return (
+          <TextArrayWidget
+            name={name}
+            control={control}
+            placeholder={placeholder}
+            disabled={readonly}
+            error={error}
+            validation={validation}
+            maxItems={field.maxItems || 50}
+            label={label}
+          />
+        );
+
       case "hidden":
         return (
           <Controller
@@ -351,6 +365,16 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({ field }) => {
 
   if (widget === "checkbox" || widget === "toggle") {
     return renderWidget();
+  }
+
+  if (widget === "text_array") {
+    return (
+      <div className="space-y-2">
+        {renderWidget()}
+        {helpText && <p className="text-sm text-muted-foreground">{helpText}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </div>
+    );
   }
 
   return (
