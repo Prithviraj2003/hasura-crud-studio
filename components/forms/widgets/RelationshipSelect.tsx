@@ -3,6 +3,7 @@
 import React from "react";
 import { Controller, Control } from "react-hook-form";
 import { VirtualizedSelect } from "./VirtualizedSelect";
+import { ForeignKey } from "@/lib/schema/types";
 
 interface RelationshipSelectProps {
   name: string;
@@ -15,6 +16,7 @@ interface RelationshipSelectProps {
   targetComponent?: string;
   displayField?: string;
   required?: boolean;
+  foreignKey?: ForeignKey;
 }
 
 export const RelationshipSelect: React.FC<RelationshipSelectProps> = ({
@@ -27,6 +29,7 @@ export const RelationshipSelect: React.FC<RelationshipSelectProps> = ({
   targetComponent,
   displayField = "name",
   required,
+  foreignKey,
 }) => {
   if (control) {
     return (
@@ -53,6 +56,7 @@ export const RelationshipSelect: React.FC<RelationshipSelectProps> = ({
               targetComponent={targetComponent || ""}
               displayField={displayField}
               label={placeholder}
+              foreignKey={foreignKey}
             />
           );
         }}
@@ -73,6 +77,7 @@ export const RelationshipSelect: React.FC<RelationshipSelectProps> = ({
       targetComponent={targetComponent || ""}
       displayField={displayField}
       label={placeholder}
+      foreignKey={foreignKey}
     />
   );
 };

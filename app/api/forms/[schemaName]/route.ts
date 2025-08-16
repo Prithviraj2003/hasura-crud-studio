@@ -4,6 +4,7 @@ import { SchemaManager } from "@/lib/schema/SchemaManager";
 import { FormGenerator } from "@/lib/schema/FormGenerator";
 import { CacheManager } from "@/lib/schema/CacheManager";
 import { IdGeneratorService } from "@/lib/services/IdGeneratorService";
+import { Field, Relationship, Schema } from "@/lib/schema/types";
 
 const cacheManager = new CacheManager(
   process.env.REDIS_URL,
@@ -76,7 +77,7 @@ export async function POST(
       );
     } else {
       // Use standard mutation
-      const tableName = getTableName(schema);
+      const tableName = getTableName(schema, null);
 
       if (entityId) {
         // Update
@@ -139,13 +140,13 @@ export async function POST(
 
 async function executeComplexMutation(
   hasuraClient: any,
-  schema: any,
+  schema: Schema,
   data: any,
   entityId?: string
 ) {
   // This is a simplified version - in production, you would need to
   // handle the complex relationships properly
-  const tableName = getTableName(schema);
+  const tableName = getTableName(schema, null);
 
   // Extract main entity data and relationship data
   const mainData: any = {};
@@ -153,7 +154,7 @@ async function executeComplexMutation(
 
   // First, identify all relationship names to exclude them from main data
   const relationshipNames = new Set(
-    (schema.relationships || []).map((rel: any) => rel.name)
+    (schema.relationships || []).map((rel: Relationship) => rel.name)
   );
 
   // Extract main entity data (only fields that are NOT relationships)
@@ -179,8 +180,10 @@ async function executeComplexMutation(
   if (entityId) {
     // Update main entity
     const primaryKey = schema.schema_definition.fields.find(
-      (f: any) => f.primary_key
+      (f: Field) => f.primary_key
     );
+    if (!primaryKey) throw new Error("No primary key found");
+
     const updateMutation = `
       mutation UpdateEntity($id: String!, $data: ${tableName}_set_input!) {
         update_${tableName}_by_pk(
@@ -223,7 +226,9 @@ async function executeComplexMutation(
 
     // Handle relationship creation
     for (const relName in relationshipData) {
-      const rel = schema.relationships.find((r: any) => r.name === relName);
+      const rel = schema.relationships?.find(
+        (r: Relationship) => r.name === relName
+      );
       if (
         rel &&
         rel.type === "one-to-many" &&
@@ -231,6 +236,7 @@ async function executeComplexMutation(
       ) {
         await createRelationshipItems(
           hasuraClient,
+          schema,
           rel,
           relationshipData[relName],
           parentId
@@ -244,13 +250,14 @@ async function executeComplexMutation(
 
 async function createRelationshipItems(
   hasuraClient: any,
-  relationship: any,
+  schema: Schema,
+  relationship: Relationship,
   items: any[],
   parentId: string
 ) {
   if (!items || items.length === 0) return;
 
-  const targetTableName = getTableName(relationship.target_component);
+  const targetTableName = getTableName(schema, relationship.target_component);
 
   // Prepare items with parent reference
   const itemsToInsert = items.map((item: any) => {
@@ -308,14 +315,21 @@ async function createRelationshipItems(
   }
 }
 
-function getTableName(schema: any): string {
-  if (typeof schema === "string") {
-    return schema;
+function getTableName(
+  schema: Schema | null,
+  targetComponent: string | null
+): string {
+  if (targetComponent) {
+    const targetSchema = schema?.related_schemas?.[targetComponent];
+    if (!targetSchema) throw new Error("Target schema not found");
+    return targetSchema.schema_definition.table?.name || targetComponent;
   }
+
+  if (!schema) throw new Error("Schema not found");
+
   return (
     schema.schema_definition.table?.hasura_table_name ||
     schema.schema_definition.table?.name ||
-    schema.schema_definition.primary_component?.table ||
     `${schema.name}s`
   );
 }

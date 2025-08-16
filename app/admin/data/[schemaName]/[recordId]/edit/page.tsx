@@ -1,12 +1,8 @@
 "use client";
 
 import React from "react";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { DynamicSchemaForm } from "@/components/forms/DynamicSchemaForm";
-import { toast } from "sonner";
 
 export default function EditRecordPage() {
   const router = useRouter();
@@ -14,14 +10,14 @@ export default function EditRecordPage() {
   const schemaName = params.schemaName as string;
   const recordId = params.recordId as string;
 
-  const handleSave = (data: any) => {
-    // Stay on the edit page after saving - no redirection
-    // Show success message to user
-    toast.success("Record updated successfully!", {
-      description: "Your changes have been saved.",
-      duration: 3000,
-    });
-  };
+  // const handleSave = (data: any) => {
+  //   // Stay on the edit page after saving - no redirection
+  //   // Show success message to user
+  //   toast.success("Record updated successfully!", {
+  //     description: "Your changes have been saved.",
+  //     duration: 3000,
+  //   });
+  // };
 
   const handleCancel = () => {
     router.push(`/admin/data/${schemaName}`);
@@ -50,7 +46,7 @@ export default function EditRecordPage() {
         <DynamicSchemaForm
           schemaName={schemaName}
           entityId={recordId}
-          onSave={handleSave}
+          // onSave={handleSave}
           onCancel={handleCancel}
         />
       </div>

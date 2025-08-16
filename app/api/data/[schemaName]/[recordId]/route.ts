@@ -4,6 +4,8 @@ import { SchemaManager } from "@/lib/schema/SchemaManager";
 import { CacheManager } from "@/lib/schema/CacheManager";
 import { CascadingDeleteService } from "@/lib/services/CascadingDeleteService";
 import { gql } from "@apollo/client";
+import { Field } from "@/lib/schema/types";
+import { Relationship } from "@/lib/schema/types";
 
 const cacheManager = new CacheManager(
   process.env.REDIS_URL,
@@ -22,30 +24,33 @@ function getTableName(schemaName: string): string {
 // Helper function to build GraphQL query for single record
 function buildGetQuery(
   tableName: string,
-  fields: any[],
-  relationships: any[] = []
+  fields: Field[],
+  relationships: Relationship[] = []
 ): string {
   const fieldSelections = fields.map((field) => field.name).join("\n    ");
 
   const relationshipSelections = relationships
     .map((rel) => {
+      const sourceField = fields.find((f) => f.name === rel.source_field);
+      const displayField = sourceField?.ui_config?.display_field;
+
       if (rel.type === "one-to-many") {
         return `
     ${rel.graphql_field} {
-      id
-      ${rel.ui_config?.display_field || "name"}
+      ${rel.target_field}
+      ${displayField}
     }`;
       } else if (rel.type === "many-to-one") {
         return `
     ${rel.graphql_field} {
-      id
-      ${rel.ui_config?.display_field || "name"}
+      ${rel.target_field}
+      ${displayField}
     }`;
       } else if (rel.type === "many-to-many") {
         return `
     ${rel.graphql_field} {
-      id
-      ${rel.ui_config?.display_field || "name"}
+      ${rel.target_field}
+      ${displayField}
     }`;
       }
       return "";
@@ -145,21 +150,16 @@ export async function PUT(
     // Filter update data to only include fields defined in the schema
     const updateData: any = {};
     const schemaFieldNames = new Set(
-      schema.schema_definition.fields.map((field: any) => field.name)
+      schema.schema_definition.fields.map((field: Field) => field.name)
     );
 
     // Only include fields that are defined in the schema and are not auto-generated/primary key/auto-update
     for (const [fieldName, fieldValue] of Object.entries(data)) {
       if (schemaFieldNames.has(fieldName)) {
         const field = schema.schema_definition.fields.find(
-          (f: any) => f.name === fieldName
+          (f: Field) => f.name === fieldName
         );
-        if (
-          field &&
-          !field.auto_generate &&
-          !field.primary_key &&
-          !field.auto_update
-        ) {
+        if (field && !field.auto_generate && !field.primary_key) {
           updateData[fieldName] = fieldValue;
         }
       }

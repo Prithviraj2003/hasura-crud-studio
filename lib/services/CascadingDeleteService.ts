@@ -1,4 +1,5 @@
 import { gql } from "@apollo/client";
+import { Relationship, Schema } from "../schema/types";
 
 interface DeleteOrder {
   schemaName: string;
@@ -213,8 +214,8 @@ export class CascadingDeleteService {
    * Queries the database to find dependent records
    */
   private async queryDependentRecords(
-    dependentSchema: any,
-    relationship: any,
+    dependentSchema: Schema,
+    relationship: Relationship,
     parentRecordIds: string[]
   ): Promise<string[]> {
     const tableName = this.getTableName(dependentSchema);
@@ -281,7 +282,7 @@ export class CascadingDeleteService {
       if (recordIds && recordIds.length > 0) {
         ordered.push({
           schemaName,
-          tableName: this.getTableName({ name: schemaName }),
+          tableName: this.getTableName(schemaName),
           recordIds,
           dependsOn: [],
         });
@@ -294,7 +295,7 @@ export class CascadingDeleteService {
       if (recordIds && recordIds.length > 0) {
         ordered.push({
           schemaName,
-          tableName: this.getTableName({ name: schemaName }),
+          tableName: this.getTableName(schemaName),
           recordIds,
           dependsOn: dependencyGraph.get(schemaName) || [],
         });
@@ -430,16 +431,19 @@ export class CascadingDeleteService {
   /**
    * Helper to get table name from schema
    */
-  private getTableName(schema: any): string {
+  private getTableName(schema: Schema | string): string {
+    if (typeof schema === "string") {
+      const snakeCase = schema
+        .replace(/[A-Z]/g, (letter: string) => `_${letter.toLowerCase()}`)
+        .replace(/^_/, "");
+
+      return snakeCase.endsWith("s") ? snakeCase : `${snakeCase}s`;
+    }
+
     if (schema.schema_definition?.table?.name) {
       return schema.schema_definition.table.name;
     }
 
-    // Convert schema name to table name
-    const snakeCase = schema.name
-      .replace(/[A-Z]/g, (letter: string) => `_${letter.toLowerCase()}`)
-      .replace(/^_/, "");
-
-    return snakeCase.endsWith("s") ? snakeCase : `${snakeCase}s`;
+    throw new Error("Invalid schema");
   }
 }

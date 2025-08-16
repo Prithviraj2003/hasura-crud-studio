@@ -5,6 +5,7 @@ import { FieldRenderer } from "@/components/forms/FieldRenderer";
 import { RelationshipRenderer } from "@/components/forms/RelationshipRenderer";
 import { FormSection } from "@/components/forms/FormSection";
 import { FormConfig } from "@/lib/schema/FormGenerator";
+import { FormSection as FormSectionType } from "@/lib/schema/types";
 
 interface SchemaRendererProps {
   config: FormConfig;
@@ -28,7 +29,7 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
         {sections &&
           sections.map((sectionName) => {
             const section = layout.sections?.find(
-              (s: any) => s.title === sectionName
+              (s: FormSectionType) => s.title === sectionName
             );
 
             return section ? (
@@ -45,7 +46,7 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
             const rel = config.relationships.find((r) => r.name === relName);
             const relatedSchema =
               config.relatedSchemas?.[rel?.targetComponent || ""];
-            return rel ? (
+            return rel && relatedSchema ? (
               <div key={relName} className="mt-6">
                 <RelationshipRenderer
                   relationship={rel}
@@ -64,7 +65,7 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
   if (layout?.sections) {
     return (
       <div className="space-y-6">
-        {layout.sections.map((section: any, index: number) => (
+        {layout.sections.map((section: FormSectionType, index: number) => (
           <div key={section.title} className={index > 0 ? "mt-6" : ""}>
             <FormSection section={section} fields={fields} />
           </div>
@@ -75,6 +76,9 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
             {config.relationships.map((rel) => {
               const relatedSchema =
                 config.relatedSchemas?.[rel.targetComponent];
+              if (!relatedSchema) {
+                return null;
+              }
               return (
                 <div key={rel.name}>
                   <RelationshipRenderer
@@ -99,6 +103,7 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
           .filter((field) => !field.hidden)
           .map((field) => (
             <div key={field.name} className="col-span-12">
+              {field.name}
               <FieldRenderer field={field} />
             </div>
           ))}
@@ -108,6 +113,9 @@ export const SchemaRenderer: React.FC<SchemaRendererProps> = ({
         <div className="mt-8 space-y-6">
           {config.relationships.map((rel) => {
             const relatedSchema = config.relatedSchemas?.[rel.targetComponent];
+            if (!relatedSchema) {
+              return null;
+            }
             return (
               <div key={rel.name}>
                 <RelationshipRenderer

@@ -15,10 +15,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Field, Relationship, Schema } from "@/lib/schema/types";
 
 interface DataTableProps {
   schemaName: string;
-  schema: any;
+  schema: Schema;
   onEdit: (recordId: string) => void;
   // onDelete: (recordId: string) => void;
 }
@@ -237,15 +238,15 @@ export const DataTable: React.FC<DataTableProps> = ({
     // Default to showing first 4 fields plus standard fields
     const fields = schema.schema_definition.fields;
     const defaultColumns = fields
-      .filter((field: any) => !field.ui_config?.hidden)
+      .filter((field: Field) => !field.ui_config?.hidden)
       .slice(0, 4)
-      .map((field: any) => field.name);
+      .map((field: Field) => field.name);
 
     // Add common timestamp fields if they exist
     const timestampFields = ["created_at", "updated_at"];
     timestampFields.forEach((field) => {
       if (
-        fields.find((f: any) => f.name === field) &&
+        fields.find((f: Field) => f.name === field) &&
         !defaultColumns.includes(field)
       ) {
         defaultColumns.push(field);
@@ -268,7 +269,12 @@ export const DataTable: React.FC<DataTableProps> = ({
     return div.textContent || div.innerText || "";
   };
 
-  const formatCellValue = (value: any, fieldName: string) => {
+  const formatCellValue = (
+    value: any,
+    fieldName: string,
+    relationships: Relationship[],
+    relatedSchemas: Record<string, Schema>
+  ) => {
     if (value === null || value === undefined) {
       return <span className="text-muted-foreground">-</span>;
     }
@@ -276,7 +282,7 @@ export const DataTable: React.FC<DataTableProps> = ({
     // Handle dates
     if (fieldName.includes("_at") || fieldName.includes("date")) {
       try {
-        return new Date(value).toLocaleDateString("en-US", {
+        return new Date(value as string).toLocaleDateString("en-US", {
           year: "numeric",
           month: "short",
           day: "numeric",
@@ -328,13 +334,24 @@ export const DataTable: React.FC<DataTableProps> = ({
 
     // Handle objects (relationships)
     if (typeof value === "object" && value !== null) {
-      for (const key in value) {
-        if (key.includes("name")) {
-          return value[key];
+      const relationship = relationships.find((rel) => rel.name === fieldName);
+      if (relationship) {
+        const schema = relatedSchemas[relationship.target_component];
+        const displayField = schema.schema_definition.table?.display_field;
+        const nameField = schema.schema_definition.fields.find((f: Field) =>
+          f.name.includes("name")
+        )?.name;
+
+        if (!displayField && !nameField) {
+          return value.id || "[Object]";
         }
+
+        return (
+          value[displayField || nameField || "id"] || value.id || "[Object]"
+        );
       }
       // Otherwise show the ID or a placeholder
-      return value.id || "[Object]";
+      return (value as Record<string, unknown>).id || "[Object]";
     }
 
     return value;
@@ -374,9 +391,11 @@ export const DataTable: React.FC<DataTableProps> = ({
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   ref={searchInputRef}
-                  placeholder={`Search records with ${schema.ui_schema?.list_view?.searchable_columns.join(
-                    ", "
-                  )}`}
+                  placeholder={`Search records with ${
+                    schema.ui_schema?.list_view?.searchable_columns?.join(
+                      ", "
+                    ) || "any field"
+                  }`}
                   autoFocus
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
@@ -425,7 +444,7 @@ export const DataTable: React.FC<DataTableProps> = ({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {displayColumns.map((column: any) => (
+                    {displayColumns.map((column: string) => (
                       <TableHead key={column} className="font-medium">
                         {column
                           ?.replace(/_/g, " ")
@@ -438,9 +457,14 @@ export const DataTable: React.FC<DataTableProps> = ({
                 <TableBody>
                   {data.map((record, index) => (
                     <TableRow key={record.id || index}>
-                      {displayColumns.map((column: any) => (
+                      {displayColumns.map((column: string) => (
                         <TableCell key={column}>
-                          {formatCellValue(record[column], column)}
+                          {formatCellValue(
+                            record[column],
+                            column,
+                            schema.relationships || [],
+                            schema.related_schemas || {}
+                          )}
                         </TableCell>
                       ))}
                       <TableCell className="text-right">

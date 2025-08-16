@@ -4,6 +4,7 @@ import { SchemaManager } from "@/lib/schema/SchemaManager";
 import { CacheManager } from "@/lib/schema/CacheManager";
 import { gql } from "@apollo/client";
 import { IdGeneratorService } from "@/lib/services/IdGeneratorService";
+import { Field, Relationship, UISchema } from "@/lib/schema/types";
 
 const cacheManager = new CacheManager(
   process.env.REDIS_URL,
@@ -22,45 +23,36 @@ function getTableName(schemaName: string): string {
 }
 
 // Helper function to build GraphQL query for listing data
-function buildListQuery(
+async function buildListQuery(
   tableName: string,
-  fields: any[],
-  relationships: any[] = []
-): string {
-  const fieldSelections = fields
-    .filter((field) => !field.ui_config?.hidden || field.name === "id")
-    .map((field) => {
-      if (field.name.includes(".")) {
-        const [parent, child] = field.name.split(".");
-        return `${parent} {\n      ${child}\n    }`;
-      }
-      return field.name;
-    })
-    .join("\n    ");
+  primaryKey: string,
+  fields: Field[],
+  relationships: Relationship[] = [],
+  ui_schema: UISchema
+): Promise<string> {
+  let getQuery = "";
 
-  const relationshipSelections = relationships
-    .filter((rel) => rel.ui_config?.display_in_list)
-    .map((rel) => {
-      if (rel.type === "one-to-many") {
-        return;
-      }
-      if (rel.ui_config?.display_field.includes(".")) {
-        const [parent, child] = rel.ui_config?.display_field.split(".");
-        return `${parent} {\n      ${child}\n    }`;
-      }
-      return `
-    ${rel.graphql_field} {
-      ${rel.ui_config?.display_field || "id"}
-    }`;
-    })
-    .join("\n    ");
-
-  return `
+  for (const column of ui_schema?.list_view?.columns || []) {
+    if (fields.find((field) => field.name === column)) {
+      getQuery += `${column}\n        `;
+    }
+    const relationship = relationships.find((rel) => rel.name === column);
+    if (relationship) {
+      const relationshipField = fields.find(
+        (field) => field.name === relationship.source_field
+      );
+      getQuery += `${relationship.graphql_field} {\n`;
+      getQuery += `  ${relationshipField?.ui_config?.display_field}\n`;
+      getQuery += `}\n        `;
+    }
+  }
+  if (!ui_schema?.list_view?.columns?.includes(primaryKey)) {
+    getQuery += `${primaryKey}\n        `;
+  }
+  const query = `
     query List${tableName}($limit: Int, $offset: Int, $where: ${tableName}_bool_exp, $order_by: [${tableName}_order_by!]) {
       ${tableName}(limit: $limit, offset: $offset, where: $where, order_by: $order_by) {
-        ${fieldSelections}
-        ${relationshipSelections}
-      }
+        ${getQuery}}
       ${tableName}_aggregate(where: $where) {
         aggregate {
           count
@@ -68,6 +60,7 @@ function buildListQuery(
       }
     }
   `;
+  return query;
 }
 
 export async function GET(
@@ -94,6 +87,7 @@ export async function GET(
     const tableName = getTableName(schemaName);
     const fields = schema.schema_definition.fields;
     const relationships = schema.relationships || [];
+    const ui_schema = schema.ui_schema;
 
     // Build query variables
     const limit = pageSize;
@@ -132,7 +126,13 @@ export async function GET(
     try {
       //console.log("fields in get api", fields);
       // Build and execute the query
-      const query = buildListQuery(tableName, fields, relationships);
+      const query = await buildListQuery(
+        tableName,
+        schema.schema_definition.table?.primary_key || "id",
+        fields,
+        relationships,
+        ui_schema || {}
+      );
 
       const response = await hasuraClient.query({
         query: gql(query),

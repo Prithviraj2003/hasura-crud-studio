@@ -21,11 +21,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { RelationshipConfig } from "@/lib/schema/FormGenerator";
 import { DynamicFieldRenderer } from "./DynamicFieldRenderer";
+import { Field, Schema } from "@/lib/schema/types";
 
 interface OneToManyManagerProps {
   relationship: RelationshipConfig;
   fieldName: string;
-  relatedSchema?: any;
+  relatedSchema: Schema;
   className?: string;
   parentId?: string; // The ID of the parent record for reference_id
 }
@@ -98,8 +99,8 @@ export const OneToManyManager: React.FC<OneToManyManagerProps> = ({
     });
   };
 
-  const createEmptyItem = async (schema: any, parentId?: string) => {
-    const emptyItem: any = {};
+  const createEmptyItem = async (schema: Schema, parentId?: string) => {
+    const emptyItem: Record<string, any> = {};
 
     if (schema?.schema_definition?.fields) {
       for (const field of schema.schema_definition.fields) {
@@ -114,8 +115,8 @@ export const OneToManyManager: React.FC<OneToManyManagerProps> = ({
         }
 
         // Handle auto-population based on schema configuration
-        if (field.ui_config?.auto_populate && parentId) {
-          const autoPopulate = field.ui_config.auto_populate;
+        if (field?.auto_populate && parentId) {
+          const autoPopulate = field.auto_populate;
 
           if (autoPopulate.source === "parent_context") {
             emptyItem[field.name] = parentId;
@@ -127,9 +128,14 @@ export const OneToManyManager: React.FC<OneToManyManagerProps> = ({
     return emptyItem;
   };
 
-  const getDisplayValue = (item: any) => {
+  const getDisplayValue = (item: Record<string, any>) => {
     // Try to find a suitable display field
-    const displayField = relationship.displayField || "name";
+    const displayField =
+      relationship.sourceField ||
+      relatedSchema?.schema_definition?.fields?.find(
+        (f: Field) => f.name === relationship.sourceField
+      )?.ui_config?.display_field ||
+      "name";
     if (displayField.includes(".")) {
       const key_list = displayField.split(".");
       let value = item;
@@ -149,7 +155,7 @@ export const OneToManyManager: React.FC<OneToManyManagerProps> = ({
     // Fallback to first text field
     if (relatedSchema?.schema_definition?.fields) {
       const textField = relatedSchema.schema_definition.fields.find(
-        (f: any) => f.type === "text" && f.name !== "id"
+        (f: Field) => f.type === "text" && f.name !== "id"
       );
       if (textField && item[textField.name]) {
         return item[textField.name];
@@ -244,7 +250,7 @@ export const OneToManyManager: React.FC<OneToManyManagerProps> = ({
                 </Button>
               </div>
             ) : (
-              items.map((item: any, index: number) => {
+              items.map((item: Record<string, any>, index: number) => {
                 const isExpanded = expandedItems.has(index);
                 const displayValue = getDisplayValue(item);
 

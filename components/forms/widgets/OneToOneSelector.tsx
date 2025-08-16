@@ -26,7 +26,6 @@ interface OneToOneSelectorProps {
 }
 
 export const OneToOneSelector: React.FC<OneToOneSelectorProps> = ({
-  fieldName,
   fieldKey,
   label,
   foreignKey,
@@ -37,18 +36,23 @@ export const OneToOneSelector: React.FC<OneToOneSelectorProps> = ({
   onChange,
   displayField = "name",
 }) => {
-  const [options, setOptions] = useState<any[]>([]);
+  const [options, setOptions] = useState<
+    {
+      value: string;
+      label: string;
+    }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (foreignKey?.table) {
+    if (foreignKey?.hasura_table) {
       loadOptions();
     }
-  }, [foreignKey?.table]);
+  }, [foreignKey?.hasura_table]);
 
   const loadOptions = async () => {
-    if (!foreignKey?.table) return;
+    if (!foreignKey?.hasura_table) return;
 
     try {
       setLoading(true);
@@ -56,7 +60,7 @@ export const OneToOneSelector: React.FC<OneToOneSelectorProps> = ({
 
       // Generate cache key
       const cacheKey = requestCache.getOptionsKey(
-        foreignKey.table,
+        foreignKey.hasura_table,
         100,
         displayField,
         "asc"
@@ -64,11 +68,7 @@ export const OneToOneSelector: React.FC<OneToOneSelectorProps> = ({
 
       // Use cache to prevent duplicate requests and consistent GET method
       const result = await requestCache.get(cacheKey, async () => {
-        console.log(
-          "foreignKey.table in one to one selector",
-          foreignKey.table
-        );
-        const url = `/api/graphql/options/${foreignKey.table}?limit=100&orderBy=${displayField}&direction=asc`;
+        const url = `/api/graphql/options/${foreignKey.hasura_table}?orderBy=${displayField}&direction=asc&labelField=${displayField}&valueField=${foreignKey.column}`;
 
         const response = await fetch(url);
 
@@ -83,30 +83,11 @@ export const OneToOneSelector: React.FC<OneToOneSelectorProps> = ({
       setOptions(data);
     } catch (err: any) {
       console.error("Failed to load relationship options:", err);
-      setError(`Failed to load options from ${foreignKey.table}`);
+      setError(`Failed to load options from ${foreignKey.hasura_table}`);
     } finally {
       setLoading(false);
     }
   };
-
-  const getDisplayValue = (option: any) => {
-    // Try to get a meaningful display value
-    if (option[displayField] && option[displayField] !== option.id) {
-      return option[displayField];
-    }
-
-    // Fallback to common fields
-    const fallbackFields = ["name", "title", "label"];
-    for (const field of fallbackFields) {
-      if (option[field]) {
-        return option[field];
-      }
-    }
-
-    // Final fallback to ID
-    return option.id;
-  };
-
   return (
     <div className="space-y-2">
       <Label htmlFor={fieldKey}>
@@ -132,8 +113,8 @@ export const OneToOneSelector: React.FC<OneToOneSelectorProps> = ({
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (
-            <SelectItem key={option.id} value={option.id}>
-              {getDisplayValue(option)}
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
             </SelectItem>
           ))}
         </SelectContent>
@@ -145,7 +126,7 @@ export const OneToOneSelector: React.FC<OneToOneSelectorProps> = ({
 
       {!error && !helpText && (
         <p className="text-xs text-muted-foreground">
-          Related to: {foreignKey.table}
+          Related to: {foreignKey.hasura_table}
         </p>
       )}
     </div>

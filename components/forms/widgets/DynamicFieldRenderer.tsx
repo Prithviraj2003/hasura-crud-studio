@@ -14,11 +14,11 @@ import {
 } from "@/components/ui/select";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
-import { OneToOneSelector } from "@/components/forms/widgets/OneToOneSelector";
-import { Field } from "@/lib/schema/types";
+import { Field, Schema } from "@/lib/schema/types";
+import { VirtualizedSelect } from "./VirtualizedSelect";
 
 interface DynamicFieldRendererProps {
-  schema: any;
+  schema: Schema;
   item: any;
   itemIndex: number;
   fieldName: string;
@@ -63,6 +63,10 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
       return null;
     }
 
+    if (field.auto_populate && fieldValue) {
+      return null;
+    }
+
     const label =
       field.ui_config?.label ||
       field.name
@@ -82,7 +86,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
               </Label>
               <div className="border rounded-md border-gray-200">
                 <CKEditor
-                  editor={ClassicEditor}
+                  editor={ClassicEditor as any}
                   data={fieldValue || ""}
                   onChange={(event, editor) => {
                     const data = editor.getData();
@@ -183,18 +187,18 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
 
           // For regular foreign key fields, show the relationship selector
           return (
-            <OneToOneSelector
+            <VirtualizedSelect
               key={field.name}
-              fieldName={field.name}
-              fieldKey={fieldKey}
+              name={field.name}
+              value={fieldValue}
+              onChange={(value) => handleFieldChange(field.name, value)}
+              placeholder={placeholder}
+              required={isRequired}
+              targetComponent={field.foreign_key.hasura_table}
+              displayField={field.ui_config?.display_field}
               label={label}
               foreignKey={field.foreign_key}
-              value={fieldValue}
-              required={isRequired}
-              placeholder={field.ui_config?.placeholder}
               helpText={field.ui_config?.help_text}
-              onChange={(value) => handleFieldChange(field.name, value)}
-              displayField={field.ui_config?.display_field}
             />
           );
         }
@@ -212,7 +216,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
               onChange={(e) => handleFieldChange(field.name, e.target.value)}
               placeholder={placeholder}
               required={isRequired}
-              maxLength={field.max_length || field.validation?.max_length}
+              maxLength={field.validation?.max_length}
             />
             {field.ui_config?.help_text && (
               <p className="text-xs text-muted-foreground">
@@ -287,13 +291,13 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
                 <SelectValue placeholder={`Select ${label.toLowerCase()}`} />
               </SelectTrigger>
               <SelectContent>
-                {field.enum_values?.map((option: string) => (
-                  <SelectItem key={option} value={option}>
-                    {option
-                      .replace(/_/g, " ")
-                      .replace(/\b\w/g, (l: string) => l.toUpperCase())}
-                  </SelectItem>
-                ))}
+                {field.ui_config?.options?.map(
+                  (option: { value: string; label: string }) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  )
+                )}
               </SelectContent>
             </Select>
             {field.ui_config?.help_text && (
@@ -368,7 +372,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
               <p className="text-xs text-muted-foreground">
                 {isReferenceField
                   ? "Reference ID will be set automatically when parent record is saved"
-                  : `Related to: ${field.foreign_key.table}`}
+                  : `Related to: ${field.foreign_key.hasura_table}`}
               </p>
             </div>
           );

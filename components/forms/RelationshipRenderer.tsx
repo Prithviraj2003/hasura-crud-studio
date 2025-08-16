@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RelationshipConfig } from "@/lib/schema/FormGenerator";
 import { RelationshipSelect } from "@/components/forms/widgets/RelationshipSelect";
 import { OneToManyManager } from "@/components/forms/widgets/OneToManyManager";
+import { Field, Schema } from "@/lib/schema/types";
 
 interface RelationshipRendererProps {
   relationship: RelationshipConfig;
-  relatedSchema?: any;
+  relatedSchema: Schema;
   parentId?: string;
   mode?: "create" | "edit";
 }
@@ -55,7 +56,11 @@ export const RelationshipRenderer: React.FC<RelationshipRendererProps> = ({
           control={control}
           relationshipType={relationship.type}
           targetComponent={relationship.targetComponent || ""}
-          displayField={relationship.displayField}
+          displayField={
+            relatedSchema?.schema_definition?.fields?.find(
+              (f: Field) => f.name === relationship.sourceField
+            )?.ui_config?.display_field
+          }
           placeholder={`Select ${relationship.title}`}
           disabled={shouldDisableInEdit}
         />

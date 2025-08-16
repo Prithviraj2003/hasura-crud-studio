@@ -58,9 +58,11 @@ export default function MediaLibraryPage() {
       if (!response.ok) throw new Error("Failed to load folders");
       const data = await response.json();
       setFolders(data);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error loading folders:", err);
-      setError(err.message);
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred"
+      );
     }
   };
 
@@ -88,9 +90,11 @@ export default function MediaLibraryPage() {
       const data = await response.json();
       setMediaItems(data.items);
       setTotalPages(data.totalPages);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error loading media:", err);
-      setError(err.message);
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred"
+      );
     } finally {
       setLoading(false);
     }
@@ -133,9 +137,11 @@ export default function MediaLibraryPage() {
       );
       setSelectedItems([]);
       loadMedia();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error deleting items:", err);
-      setError(err.message);
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred"
+      );
     }
   };
 

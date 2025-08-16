@@ -1,4 +1,4 @@
-import { Schema, Field, Relationship, FormSection, FormTab } from "./types";
+import { Schema, Field, Relationship, ForeignKey } from "./types";
 import { SchemaManager } from "./SchemaManager";
 import { gql } from "@apollo/client";
 
@@ -27,10 +27,8 @@ export interface FieldConfig {
   validation?: any;
   options?: any[];
   conditionalDisplay?: any;
-  step?: number;
   min?: number;
   max?: number;
-  currency?: string;
   grid_cols?: number;
   // File upload specific properties
   allowedTypes?: string[];
@@ -39,22 +37,21 @@ export interface FieldConfig {
   maxItems?: number;
   targetComponent?: string;
   displayField?: string;
+  foreignKey?: ForeignKey;
 }
 
 export interface RelationshipConfig {
   name: string;
   type: string;
   targetComponent: string;
-  widget: string;
   title: string;
   required: boolean;
   allowCreate: boolean;
   allowEdit: boolean;
   allowDelete: boolean;
-  displayField: string;
-  searchEnabled?: boolean;
   sortable?: boolean;
   maxItems?: number;
+  sourceField?: string;
 }
 
 export class FormGenerator {
@@ -93,7 +90,6 @@ export class FormGenerator {
               required: true,
               primary_key: true,
               auto_generate: false,
-              auto_update: false,
               readonly: false,
               validation: { min_length: 1, max_length: 16 },
               ui_config: {
@@ -110,7 +106,6 @@ export class FormGenerator {
               required: true,
               primary_key: false,
               auto_generate: false,
-              auto_update: false,
               readonly: false,
               validation: { min_length: 2, max_length: 200 },
               ui_config: {
@@ -127,7 +122,6 @@ export class FormGenerator {
               required: true,
               primary_key: false,
               auto_generate: false,
-              auto_update: false,
               readonly: false,
               validation: { max_length: 50 },
               ui_config: {
@@ -143,13 +137,11 @@ export class FormGenerator {
               required: true,
               primary_key: false,
               auto_generate: false,
-              auto_update: false,
               readonly: false,
               validation: { min: 0, max: 999999.99 },
               ui_config: {
                 label: "Price",
                 widget: "currency_input",
-                currency: "USD",
               },
             },
           ],
@@ -171,7 +163,6 @@ export class FormGenerator {
             ],
           },
         },
-        generated_operations: {},
         description: "Default variant schema for demonstration",
         updated_at: new Date().toISOString(),
       };
@@ -243,10 +234,7 @@ export class FormGenerator {
       );
 
       // Determine if field should be readonly in edit mode
-      const isIdField =
-        field.primary_key ||
-        field.auto_generate ||
-        field.name.toLowerCase().includes("id");
+      const isIdField = field.primary_key || field.auto_generate;
       const isForeignKeyField = relatedRelationship !== undefined;
       const shouldBeReadonlyInEdit =
         mode === "edit" && (isIdField || isForeignKeyField);
@@ -260,30 +248,20 @@ export class FormGenerator {
         helpText: field.ui_config?.help_text,
         required: field.required,
         hidden: field.ui_config?.hidden || field.auto_generate || false,
-        readonly: field.readonly || field.auto_update || shouldBeReadonlyInEdit,
+        readonly: field.readonly || shouldBeReadonlyInEdit,
         validation: field.validation,
-        options:
-          field.ui_config?.options ||
-          (field.enum_values
-            ? field.enum_values.map((v) => ({
-                value: v,
-                label: this.humanize(v),
-              }))
-            : undefined),
+        options: field.ui_config?.options,
         conditionalDisplay: field.ui_config?.conditional_display,
-        step: field.ui_config?.step || field.step,
-        min: field.ui_config?.min || field.validation?.min,
-        max: field.ui_config?.max || field.validation?.max,
-        currency: field.ui_config?.currency,
+        min: field.validation?.min,
+        max: field.validation?.max,
         // Set targetComponent for relationship fields
         targetComponent: relatedRelationship
           ? relatedRelationship.target_component
           : undefined,
-        displayField: relatedRelationship
-          ? relatedRelationship.ui_config?.display_field || "name"
-          : undefined,
+        displayField: field.ui_config?.display_field || "name",
         grid_cols: field.ui_config?.grid_cols,
-        maxItems: field.ui_config?.max_items,
+        maxItems: field.validation?.max_items,
+        foreignKey: field.foreign_key,
       };
     });
   }
@@ -296,17 +274,14 @@ export class FormGenerator {
       name: rel.name,
       type: rel.type,
       targetComponent: rel.target_component,
-      widget:
-        rel.ui_config?.widget || this.getDefaultRelationshipWidget(rel.type),
-      title: rel.ui_config?.title || this.humanize(rel.name),
+      title: this.humanize(rel.name),
       required: rel.required || false,
-      allowCreate: rel.ui_config?.allow_create !== false,
-      allowEdit: rel.ui_config?.allow_edit !== false,
-      allowDelete: rel.ui_config?.allow_delete !== false,
-      displayField: rel.ui_config?.display_field || "name",
-      searchEnabled: rel.ui_config?.search_enabled,
-      sortable: rel.ui_config?.sortable,
-      maxItems: rel.ui_config?.max_items,
+      allowCreate: rel.config?.allow_create !== false,
+      allowEdit: rel.config?.allow_edit !== false,
+      allowDelete: rel.config?.allow_delete !== false,
+      sortable: rel.config?.sortable,
+      maxItems: rel.config?.max_items,
+      sourceField: rel.source_field,
     }));
   }
 
@@ -328,12 +303,10 @@ export class FormGenerator {
           };
         }
 
-        if (field.validation.max_length || field.max_length) {
+        if (field.validation.max_length) {
           fieldRules.maxLength = {
-            value: field.validation.max_length || field.max_length,
-            message: `Maximum length is ${
-              field.validation.max_length || field.max_length
-            } characters`,
+            value: field.validation.max_length,
+            message: `Maximum length is ${field.validation.max_length} characters`,
           };
         }
 
@@ -474,8 +447,8 @@ export class FormGenerator {
       }
 
       // Handle auto-population based on schema configuration
-      if (field.ui_config?.auto_populate && contextData) {
-        const autoPopulate = field.ui_config.auto_populate;
+      if (field.auto_populate && contextData) {
+        const autoPopulate = field.auto_populate;
 
         if (autoPopulate.source === "parent_context" && contextData.parentId) {
           defaults[field.name] = contextData.parentId;
@@ -496,8 +469,7 @@ export class FormGenerator {
 
     const tableName =
       schema.schema_definition.table?.hasura_table_name ||
-      schema.schema_definition.table?.name ||
-      schema.schema_definition.primary_component?.table;
+      schema.schema_definition.table?.name;
 
     if (!tableName) throw new Error("No table name found in schema");
 
@@ -517,10 +489,13 @@ export class FormGenerator {
     // Add relationships
     if (schema.relationships) {
       schema.relationships.forEach((rel) => {
+        const relationshipField = schema.schema_definition.fields.find(
+          (f) => f.name === rel.source_field
+        );
         if (rel.type === "many-to-one" || rel.type === "one-to-one") {
           query += `      ${rel.graphql_field} {\n`;
           query += `        id\n`;
-          query += `        ${rel.ui_config?.display_field}\n`;
+          query += `        ${relationshipField?.ui_config?.display_field}\n`;
           query += `      }\n`;
         } else if (rel.type === "one-to-many") {
           query += `      ${rel.graphql_field} {\n`;
@@ -530,7 +505,7 @@ export class FormGenerator {
         } else if (rel.type === "many-to-many") {
           query += `      ${rel.graphql_field} {\n`;
           query += `        id\n`;
-          query += `        ${rel.ui_config?.display_field}\n`;
+          query += `        ${relationshipField?.ui_config?.display_field}\n`;
           query += `      }\n`;
         }
       });
@@ -558,8 +533,7 @@ export class FormGenerator {
 
     const tableName =
       schema.schema_definition.table?.hasura_table_name ||
-      schema.schema_definition.table?.name ||
-      schema.schema_definition.primary_component?.table;
+      schema.schema_definition.table?.name;
 
     if (!tableName) throw new Error("No table name found in schema");
 
@@ -580,11 +554,14 @@ export class FormGenerator {
     if (schema.relationships) {
       schema.relationships.forEach((rel) => {
         const relatedSchema = relatedSchemas[rel.target_component];
+        const displayField = schema?.schema_definition?.fields?.find(
+          (f) => f.name === rel.source_field
+        )?.ui_config?.display_field;
 
         if (rel.type === "many-to-one" || rel.type === "one-to-one") {
           query += `      ${rel.graphql_field} {\n`;
           query += `        id\n`;
-          query += `        ${rel.ui_config?.display_field}\n`;
+          query += `        ${displayField}\n`;
 
           // // Add other important fields from related schema
           if (relatedSchema?.schema_definition?.fields) {
@@ -608,8 +585,7 @@ export class FormGenerator {
           if (relatedSchema?.schema_definition?.fields) {
             relatedSchema.schema_definition.fields.forEach((field) => {
               if (!field.ui_config?.hidden) {
-                console.log("field", field.name);
-                // query += `        ${field.name}\n`;
+                query += `        ${field.name}\n`;
               }
             });
           }
@@ -652,7 +628,11 @@ export class FormGenerator {
         } else if (rel.type === "many-to-many") {
           query += `      ${rel.graphql_field} {\n`;
           query += `        id\n`;
-          query += `        ${rel.ui_config?.display_field}\n`;
+          query += `        ${
+            relatedSchema?.schema_definition?.fields?.find(
+              (f) => f.name === rel.source_field
+            )?.ui_config?.display_field
+          }\n`;
 
           // Add other important fields from related schema
           if (relatedSchema?.schema_definition?.fields) {
@@ -715,8 +695,7 @@ export class FormGenerator {
   buildInsertMutation(schema: Schema): string {
     const tableName =
       schema.schema_definition.table?.hasura_table_name ||
-      schema.schema_definition.table?.name ||
-      schema.schema_definition.primary_component?.table;
+      schema.schema_definition.table?.name;
 
     if (!tableName) throw new Error("No table name found in schema");
 
@@ -732,8 +711,7 @@ export class FormGenerator {
   buildUpdateMutation(schema: Schema): string {
     const tableName =
       schema.schema_definition.table?.hasura_table_name ||
-      schema.schema_definition.table?.name ||
-      schema.schema_definition.primary_component?.table;
+      schema.schema_definition.table?.name;
     const primaryKey = schema.schema_definition.fields.find(
       (f) => f.primary_key
     );

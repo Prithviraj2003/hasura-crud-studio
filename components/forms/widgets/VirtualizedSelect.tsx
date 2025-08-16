@@ -19,11 +19,7 @@ import {
 // Removed unused Command imports since we're using custom implementation
 import { FixedSizeList as List } from "react-window";
 import { requestCache } from "@/lib/cache/RequestCache";
-
-interface Option {
-  id: string;
-  [key: string]: any;
-}
+import { ForeignKey, Option } from "@/lib/schema/types";
 
 interface VirtualizedSelectProps {
   name: string;
@@ -37,6 +33,7 @@ interface VirtualizedSelectProps {
   displayField?: string;
   label?: string;
   helpText?: string;
+  foreignKey?: ForeignKey;
 }
 
 const ITEM_HEIGHT = 40;
@@ -54,6 +51,7 @@ export const VirtualizedSelect: React.FC<VirtualizedSelectProps> = ({
   displayField = "name",
   label,
   helpText,
+  foreignKey,
 }) => {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -98,7 +96,7 @@ export const VirtualizedSelect: React.FC<VirtualizedSelectProps> = ({
       const cacheKey = `single_option:${targetComponent}:${optionId}`;
 
       const result = await requestCache.get(cacheKey, async () => {
-        const url = `/api/graphql/options/${targetComponent}/${optionId}`;
+        const url = `/api/graphql/options/${targetComponent}/${optionId}?labelField=${displayField}&valueField=${foreignKey?.column}`;
         const response = await fetch(url);
 
         if (!response.ok) {
@@ -143,7 +141,7 @@ export const VirtualizedSelect: React.FC<VirtualizedSelectProps> = ({
           params.append("search", search.trim());
         }
 
-        const url = `/api/graphql/options/${targetComponent}?${params}`;
+        const url = `/api/graphql/options/${targetComponent}?${params}&labelField=${displayField}&valueField=${foreignKey?.column}`;
         const response = await fetch(url);
 
         if (!response.ok) {
@@ -163,34 +161,10 @@ export const VirtualizedSelect: React.FC<VirtualizedSelectProps> = ({
     }
   };
 
-  // Get display value for an option
-  const getDisplayValue = useCallback(
-    (option: Option) => {
-      if (!option) return "";
-
-      // Try the specified display field first
-      if (option[displayField] && option[displayField] !== option.id) {
-        return option[displayField];
-      }
-
-      // Fallback to common fields
-      const fallbackFields = ["name", "title", "label"];
-      for (const field of fallbackFields) {
-        if (option[field]) {
-          return option[field];
-        }
-      }
-
-      // Final fallback to ID
-      return option.id;
-    },
-    [displayField]
-  );
-
   // Handle option selection
   const handleSelect = (option: Option | null) => {
     setSelectedOption(option);
-    onChange(option?.id || null);
+    onChange(option?.value || null);
     setOpen(false);
     setSearchTerm("");
   };
@@ -204,7 +178,7 @@ export const VirtualizedSelect: React.FC<VirtualizedSelectProps> = ({
     style: React.CSSProperties;
   }) => {
     const option = options[index];
-    const isSelected = value === option.id;
+    const isSelected = value === option.value;
 
     return (
       <div
@@ -214,7 +188,7 @@ export const VirtualizedSelect: React.FC<VirtualizedSelectProps> = ({
         }`}
         onClick={() => handleSelect(option)}
       >
-        <div className="flex-1 truncate">{getDisplayValue(option)}</div>
+        <div className="flex-1 truncate">{option.label}</div>
         {isSelected && <Check className="h-4 w-4 ml-2" />}
       </div>
     );
@@ -253,7 +227,7 @@ export const VirtualizedSelect: React.FC<VirtualizedSelectProps> = ({
             }`}
           >
             <span className="truncate">
-              {selectedOption ? getDisplayValue(selectedOption) : placeholder}
+              {selectedOption ? selectedOption.label : placeholder}
             </span>
             <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>

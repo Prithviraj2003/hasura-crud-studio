@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getHasuraAdminClient, HasuraAdminClient } from "@/lib/hasura/client";
-import { SchemaManager } from "@/lib/schema/SchemaManager";
+import { getHasuraAdminClient } from "@/lib/hasura/client";
 
 export async function GET(
   request: NextRequest,
@@ -10,6 +9,9 @@ export async function GET(
     const resolvedParams = await params;
     const componentName = resolvedParams.componentName;
     const optionId = resolvedParams.optionId;
+    const { searchParams } = new URL(request.url);
+    const labelField = searchParams.get("labelField") || "name";
+    const valueField = searchParams.get("valueField") || "id";
 
     const adminClient = getHasuraAdminClient();
 
@@ -20,14 +22,14 @@ export async function GET(
       const query = `
           query GetSingleOption($id: String!) {
             ${componentName}_by_pk(id: $id) {
-              id
-              ${await getOptionTitleField(componentName, adminClient)}
+              ${valueField}
+              ${labelField}
             }
           }
         `;
 
       const variables = {
-        id: optionId,
+        [valueField]: optionId,
       };
 
       const result = await adminClient.request(query, variables);
@@ -35,10 +37,7 @@ export async function GET(
 
       queryExecuted = true;
     } catch (error) {
-      console.log(
-        `Query failed for ${componentName}:`,
-        (error as Error).message
-      );
+      console.error(`Query failed for ${componentName}:`, error);
     }
 
     if (!queryExecuted) {
@@ -46,7 +45,10 @@ export async function GET(
     }
 
     return NextResponse.json({
-      data,
+      data: {
+        value: data[valueField],
+        label: data[labelField],
+      },
       componentName,
       optionId,
     });
@@ -61,18 +63,4 @@ export async function GET(
       { status: 500 }
     );
   }
-}
-
-async function getOptionTitleField(
-  componentName: string,
-  adminClient: HasuraAdminClient
-): Promise<string> {
-  const schemaManager = new SchemaManager(adminClient);
-  const schema = await schemaManager.getSchema(componentName);
-
-  const field = schema?.schema_definition.fields.find(
-    (field) => field.is_option_title
-  );
-
-  return field?.name || "name";
 }

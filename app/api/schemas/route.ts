@@ -20,7 +20,12 @@ export async function GET(request: NextRequest) {
 
     if (name) {
       // Get specific schema
-      const schema = await schemaManager.getSchema(name, version || "latest");
+      const schema = await schemaManager.getSchema(
+        name,
+        version || "latest",
+        true
+      );
+
       if (!schema) {
         return NextResponse.json(
           { error: "Schema not found" },

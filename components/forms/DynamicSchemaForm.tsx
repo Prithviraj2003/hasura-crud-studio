@@ -13,6 +13,7 @@ import { FormActions } from "./FormActions";
 import { FormIdManager } from "@/lib/services/FormIdManager";
 import { ChangeDetector } from "@/lib/services/ChangeDetector";
 import { toast } from "sonner";
+import { Field, FormTab, Schema } from "@/lib/schema/types";
 
 interface DynamicSchemaFormProps {
   schemaName: string;
@@ -53,7 +54,7 @@ export const DynamicSchemaForm: React.FC<DynamicSchemaFormProps> = ({
   const getCurrentParentId = (): string | undefined => {
     const formData = watch() as any;
     const primaryKeyField = formConfig?.schema?.schema_definition?.fields?.find(
-      (field: any) => field.primary_key
+      (field: Field) => field.primary_key
     );
 
     if (primaryKeyField && formData[primaryKeyField.name]) {
@@ -192,14 +193,9 @@ export const DynamicSchemaForm: React.FC<DynamicSchemaFormProps> = ({
           const relationship = formConfig.relationships.find(
             (r) => r.name === relationshipName
           );
-          const relatedSchema =
-            formConfig.relatedSchemas?.[relationship?.targetComponent || ""];
-          console.log("relatedSchema", relationship);
-          console.log(`Processing ${relationshipName}:`, {
-            updated: relationshipChanges.updated.length,
-            added: relationshipChanges.added.length,
-            deleted: relationshipChanges.deleted.length,
-          });
+          const relatedSchema = formConfig.relatedSchemas?.[
+            relationship?.targetComponent || ""
+          ] as Schema;
 
           // Skip if no actual changes
           if (
@@ -219,7 +215,7 @@ export const DynamicSchemaForm: React.FC<DynamicSchemaFormProps> = ({
             for (const item of relationshipChanges.updated) {
               const processedItem = await FormIdManager.processFormData(
                 item,
-                relatedSchema
+                relatedSchema as Schema
               );
 
               const response = await fetch(
@@ -256,13 +252,13 @@ export const DynamicSchemaForm: React.FC<DynamicSchemaFormProps> = ({
             // Add new relationship items
             const parentId = formData.id || entityId;
             const foreignKeyField = FormIdManager.getForeignKeyField(
-              relatedSchema,
+              relatedSchema as Schema,
               relationshipName
             );
 
             const processedItems = await FormIdManager.processRelationshipData(
               relationshipChanges.added,
-              relatedSchema,
+              relatedSchema as Schema,
               parentId,
               foreignKeyField
             );
@@ -495,8 +491,9 @@ export const DynamicSchemaForm: React.FC<DynamicSchemaFormProps> = ({
     for (const relationship of config.relationships) {
       console.log("data", data);
       if (data[relationship.name] && Array.isArray(data[relationship.name])) {
-        const relatedSchema =
-          config.relatedSchemas?.[relationship.targetComponent];
+        const relatedSchema = config.relatedSchemas?.[
+          relationship.targetComponent
+        ] as Schema;
         const foreignKeyField = FormIdManager.getForeignKeyField(
           relatedSchema,
           relationship.name
@@ -581,13 +578,13 @@ export const DynamicSchemaForm: React.FC<DynamicSchemaFormProps> = ({
             {hasTabs ? (
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2">
-                  {formConfig.layout.tabs.map((tab: any, index: number) => (
+                  {formConfig.layout.tabs.map((tab: FormTab, index: number) => (
                     <TabsTrigger key={tab.name} value={index.toString()}>
                       {tab.title}
                     </TabsTrigger>
                   ))}
                 </TabsList>
-                {formConfig.layout.tabs.map((tab: any, index: number) => (
+                {formConfig.layout.tabs.map((tab: FormTab, index: number) => (
                   <TabsContent key={tab.name} value={index.toString()}>
                     <div className="flex items-center space-x-4"></div>
                     <SchemaRenderer

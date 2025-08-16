@@ -12,6 +12,8 @@ export async function GET(
     const orderBy = searchParams.get("orderBy") || "name";
     const direction = searchParams.get("direction") || "asc";
     const search = searchParams.get("search");
+    const labelField = searchParams.get("labelField") || "name";
+    const valueField = searchParams.get("valueField") || "id";
 
     const resolvedParams = await params;
     const componentName = resolvedParams.componentName;
@@ -22,8 +24,6 @@ export async function GET(
     let queryExecuted = false;
 
     try {
-      const titleField = await getOptionTitleField(componentName, adminClient);
-
       // Build where condition for search
       let whereCondition = "";
       const variables: any = {
@@ -35,7 +35,7 @@ export async function GET(
         // Add search condition
         whereCondition = `where: $where, `;
         variables.where = {
-          [titleField]: { _ilike: `%${search}%` },
+          [labelField]: { _ilike: `%${search}%` },
         };
       }
 
@@ -44,8 +44,8 @@ export async function GET(
         search ? "$where: " + componentName + "_bool_exp!" : ""
       }) {
             ${componentName}(${whereCondition}limit: $limit, order_by: [$orderBy]) {
-              id
-              ${titleField}
+              ${valueField}
+              ${labelField}
             }
           }
         `;
@@ -56,10 +56,7 @@ export async function GET(
 
       queryExecuted = true;
     } catch (error) {
-      console.log(
-        `Query failed for ${componentName}:`,
-        (error as Error).message
-      );
+      console.error(`Query failed for ${componentName}:`, error);
     }
 
     if (!queryExecuted) {
@@ -67,7 +64,10 @@ export async function GET(
     }
 
     return NextResponse.json({
-      data,
+      data: data.map((item: { [key: string]: string }) => ({
+        value: item[valueField],
+        label: item[labelField],
+      })),
       componentName,
       count: data.length,
     });
@@ -82,17 +82,4 @@ export async function GET(
       { status: 500 }
     );
   }
-}
-
-async function getOptionTitleField(
-  componentName: string,
-  adminClient: HasuraAdminClient
-): Promise<string> {
-  const schemaManager = new SchemaManager(adminClient);
-  const schema = await schemaManager.getSchema(componentName);
-
-  const field = schema?.schema_definition.fields.find(
-    (field) => field.is_option_title
-  );
-  return field?.name || "name";
 }

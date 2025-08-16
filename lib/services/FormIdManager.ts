@@ -1,10 +1,9 @@
-import { IdGeneratorService } from "./IdGeneratorService";
-
+import { Field, Schema } from "../schema/types";
 export class FormIdManager {
   /**
    * Generates IDs for all auto_generate=true fields in the form data
    */
-  static async processFormData(data: any, schema: any): Promise<any> {
+  static async processFormData(data: any, schema: Schema): Promise<any> {
     const processedData = { ...data };
 
     if (schema?.schema_definition?.fields) {
@@ -39,7 +38,7 @@ export class FormIdManager {
    */
   static async processRelationshipData(
     relationshipData: any[],
-    relatedSchema: any,
+    relatedSchema: Schema,
     parentId: string,
     foreignKeyField: string
   ): Promise<any[]> {
@@ -60,7 +59,7 @@ export class FormIdManager {
         for (const field of fields) {
           if (
             field.name === parentIdField &&
-            field.ui_config?.auto_populate?.source === "parent_context"
+            field?.auto_populate?.source === "parent_context"
           ) {
             // Auto-populate the field from parent context
             processedItem[field.name] = parentId;
@@ -81,7 +80,7 @@ export class FormIdManager {
    * Gets the foreign key field name for a relationship
    */
   static getForeignKeyField(
-    relatedSchema: any,
+    relatedSchema: Schema,
     relationshipName: string
   ): string {
     if (!relatedSchema?.schema_definition?.fields) {
@@ -90,7 +89,7 @@ export class FormIdManager {
 
     // Look for a field that has foreign_key configuration
     const foreignKeyField = relatedSchema.schema_definition.fields.find(
-      (field: any) => field.foreign_key && field.name.includes("_id")
+      (field: Field) => field.foreign_key && field.name.includes("_id")
     );
 
     if (foreignKeyField) {
@@ -106,7 +105,7 @@ export class FormIdManager {
 
     for (const key of possibleKeys) {
       const field = relatedSchema.schema_definition.fields.find(
-        (f: any) => f.name === key
+        (f: Field) => f.name === key
       );
       if (field) {
         return key;

@@ -15,7 +15,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { FieldConfig } from "@/lib/schema/FormGenerator";
 import { RelationshipSelect } from "@/components/forms/widgets/RelationshipSelect";
-import { CurrencyInput } from "@/components/forms/widgets/CurrencyInput";
 import { JsonEditor } from "@/components/forms/widgets/JsonEditor";
 import { FileUploadWidget } from "@/components/forms/widgets/FileUploadWidget";
 import { RichTextEditor } from "@/components/forms/widgets/RichTextEditor";
@@ -44,10 +43,8 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({ field }) => {
     options,
     conditionalDisplay,
     validation,
-    step,
     min,
     max,
-    currency,
   } = field;
 
   // Check conditional display
@@ -111,25 +108,11 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({ field }) => {
                 type="number"
                 placeholder={placeholder}
                 disabled={readonly}
-                step={step}
                 min={min}
                 max={max}
                 className={error ? "border-destructive" : ""}
               />
             )}
-          />
-        );
-
-      case "currency_input":
-        return (
-          <CurrencyInput
-            name={name}
-            control={control}
-            placeholder={placeholder}
-            disabled={readonly}
-            error={error}
-            currency={currency || "USD"}
-            validation={validation}
           />
         );
 
@@ -264,6 +247,7 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({ field }) => {
             relationshipType={field.type}
             targetComponent={field.targetComponent}
             displayField={field.displayField}
+            foreignKey={field.foreignKey}
           />
         );
 
@@ -285,16 +269,14 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({ field }) => {
             name={name}
             control={control}
             rules={validation}
-            render={({ field }: { field: any }) => (
+            render={({ field }) => (
               <FileUploadWidget
                 value={field.value}
                 onChange={field.onChange}
                 multiple={type === "multi_file"}
-                allowedTypes={
-                  field.allowedTypes || ["image/*", "application/pdf"]
-                }
-                maxFiles={field.maxFiles || 5}
-                maxFileSize={field.maxFileSize || 10 * 1024 * 1024} // 10MB
+                allowedTypes={["image/*", "application/pdf"]}
+                maxFiles={5}
+                maxFileSize={10 * 1024 * 1024} // 10MB
                 required={required}
                 disabled={readonly}
                 label={label}
@@ -371,7 +353,9 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({ field }) => {
     return (
       <div className="space-y-2">
         {renderWidget()}
-        {helpText && <p className="text-sm text-muted-foreground">{helpText}</p>}
+        {helpText && (
+          <p className="text-sm text-muted-foreground">{helpText}</p>
+        )}
         {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
     );

@@ -3,23 +3,13 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Plus, Database, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { DataTable } from "@/components/data/DataTable";
-
-interface Schema {
-  id: string;
-  name: string;
-  schema_type: string;
-  version: string;
-  description?: string;
-  schema_definition: any;
-  ui_schema?: any;
-  relationships?: any[];
-}
+import { Schema } from "@/lib/schema/types";
 
 export default function SchemaDataPage() {
   const [schema, setSchema] = useState<Schema | null>(null);
@@ -47,9 +37,9 @@ export default function SchemaDataPage() {
 
       const schemaData = await response.json();
       setSchema(schemaData);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error loading schema:", err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
     }
@@ -149,11 +139,9 @@ export default function SchemaDataPage() {
                 <Database className="w-8 h-8" />
                 <span>{schema.name}</span>
                 <Badge
-                  variant={
-                    schema.schema_type === "page" ? "default" : "secondary"
-                  }
+                  variant={schema.type === "page" ? "default" : "secondary"}
                 >
-                  {schema.schema_type}
+                  {schema.type}
                 </Badge>
               </h1>
               <p className="text-muted-foreground">

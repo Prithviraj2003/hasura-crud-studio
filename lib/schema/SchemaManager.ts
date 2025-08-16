@@ -17,7 +17,8 @@ export class SchemaManager {
 
   async getSchema(
     name: string,
-    version: string = "latest"
+    version: string = "latest",
+    includeRelated: boolean = false
   ): Promise<Schema | null> {
     const cacheKey = `schema:${name}:${version}`;
 
@@ -82,6 +83,36 @@ export class SchemaManager {
       });
 
       schema = response.cms_config_page_schemas?.[0] || null;
+
+      const relatedSchemas: Record<string, Schema> = {};
+
+      // Fetch all related component schemas
+      if (schema?.relationships && includeRelated) {
+        for (const relationship of schema.relationships) {
+          const relatedSchema = await this.getSchema(
+            relationship.target_component
+          );
+          if (relatedSchema) {
+            relatedSchemas[relationship.target_component] = relatedSchema;
+
+            // Recursively fetch nested relationships for the related schema
+            if (relatedSchema.relationships) {
+              for (const nestedRel of relatedSchema.relationships) {
+                const nestedSchema = await this.getSchema(
+                  nestedRel.target_component
+                );
+                if (
+                  nestedSchema &&
+                  !relatedSchemas[nestedRel.target_component]
+                ) {
+                  relatedSchemas[nestedRel.target_component] = nestedSchema;
+                }
+              }
+            }
+          }
+        }
+        schema.related_schemas = relatedSchemas;
+      }
     } catch (error: any) {
       console.error("Error fetching schema from Hasura:", error.message);
 
@@ -159,7 +190,6 @@ export class SchemaManager {
 
     // Generate GraphQL operations
     const operations = await this.generateOperations(schemaData);
-    schemaData.generated_operations = operations;
 
     const mutation = gql`
       mutation SaveSchema($schema: page_schemas_insert_input!) {

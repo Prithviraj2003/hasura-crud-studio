@@ -6,6 +6,8 @@ import { Upload, X, Image as ImageIcon, File, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MediaItem } from "@/lib/services/MediaService";
+import { FormIdManager } from "@/lib/services/FormIdManager";
+import { IdGeneratorService } from "@/lib/services/IdGeneratorService";
 
 interface FileUploadWidgetProps {
   value?: string | string[] | null; // Changed to accept s3_url values
@@ -48,6 +50,8 @@ export function FileUploadWidget({
       const mediaItems: MediaItem[] = [];
 
       for (const url of urls) {
+        const id = await IdGeneratorService.generateId();
+
         try {
           // Try to find media item by s3_url
           const response = await fetch(
@@ -59,7 +63,7 @@ export function FileUploadWidget({
           } else {
             // If not found, create a minimal media item for display
             mediaItems.push({
-              id: "temp-" + Date.now(),
+              id: id,
               filename: url.split("/").pop() || "Unknown file",
               original_filename: url.split("/").pop() || "Unknown file",
               mime_type: "application/octet-stream",
@@ -75,7 +79,7 @@ export function FileUploadWidget({
           console.error("Error loading media item for URL:", url, error);
           // Create a minimal media item for display
           mediaItems.push({
-            id: "temp-" + Date.now(),
+            id: id,
             filename: url.split("/").pop() || "Unknown file",
             original_filename: url.split("/").pop() || "Unknown file",
             mime_type: "application/octet-stream",
