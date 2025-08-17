@@ -122,7 +122,8 @@ export type RelationshipConfig = {
   allow_delete?: boolean; // Allow deleting related records
   sortable?: boolean; // Enable sorting of related records
   sort_field?: string; // Field to sort related records by
-  max_items?: number; // Maximum number of related items allowed
+  max_items?: number; // Maximum number of related items allowed,
+  display_field?: string; // Field to display in the relationship
 };
 
 export type Operations = {

@@ -131,10 +131,11 @@ export const OneToManyManager: React.FC<OneToManyManagerProps> = ({
   const getDisplayValue = (item: Record<string, any>) => {
     // Try to find a suitable display field
     const displayField =
-      relationship.sourceField ||
+      relationship.displayField ||
       relatedSchema?.schema_definition?.fields?.find(
         (f: Field) => f.name === relationship.sourceField
       )?.ui_config?.display_field ||
+      relationship.sourceField ||
       "name";
     if (displayField.includes(".")) {
       const key_list = displayField.split(".");
