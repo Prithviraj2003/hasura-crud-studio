@@ -52,6 +52,7 @@ export interface RelationshipConfig {
   sortable?: boolean;
   maxItems?: number;
   sourceField?: string;
+  displayField?: string;
 }
 
 export class FormGenerator {
@@ -282,6 +283,7 @@ export class FormGenerator {
       sortable: rel.config?.sortable,
       maxItems: rel.config?.max_items,
       sourceField: rel.source_field,
+      displayField: rel.config?.display_field,
     }));
   }
 
@@ -558,7 +560,7 @@ export class FormGenerator {
           (f) => f.name === rel.source_field
         )?.ui_config?.display_field;
 
-        if (rel.type === "many-to-one" || rel.type === "one-to-one") {
+        if (rel.type === "many-to-one") {
           query += `      ${rel.graphql_field} {\n`;
           query += `        id\n`;
           query += `        ${displayField}\n`;
@@ -577,7 +579,7 @@ export class FormGenerator {
             });
           }
           query += `      }\n`;
-        } else if (rel.type === "one-to-many") {
+        } else if (rel.type === "one-to-many" || rel.type === "one-to-one") {
           query += `      ${rel.graphql_field} {\n`;
           query += `        id\n`;
 
@@ -685,6 +687,7 @@ export class FormGenerator {
           // For one-to-many and many-to-many, keep the array structure
         });
       }
+      console.log("formData", formData);
       return formData;
     } catch (error) {
       console.error("Error fetching initial data with relationships:", error);
